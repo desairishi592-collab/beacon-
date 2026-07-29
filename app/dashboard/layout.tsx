@@ -24,6 +24,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white dark:focus:bg-white dark:focus:text-neutral-900"
+      >
+        Skip to main content
+      </a>
       <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <span className="shrink-0 text-lg font-semibold tracking-tight">Beacon</span>
@@ -51,7 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           unreadAlertCount={unreadAlertCount}
           isTeamAdmin={profile?.team_role === 'admin'}
         />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main id="main-content" className="min-w-0 flex-1">{children}</main>
       </div>
     </div>
   )

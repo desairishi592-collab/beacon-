@@ -40,7 +40,7 @@ export function ConfirmActionButton({
     <form action={formAction} className="flex items-center gap-2">
       {hiddenField && <input type="hidden" name={hiddenField.name} value={hiddenField.value} />}
       {state && 'error' in state && (
-        <span className="text-xs text-red-600 dark:text-red-400">{state.error}</span>
+        <span role="alert" className="text-xs text-red-600 dark:text-red-400">{state.error}</span>
       )}
       <button
         type="button"

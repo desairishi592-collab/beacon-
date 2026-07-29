@@ -18,7 +18,7 @@ function PreferenceRow({ preference }: { preference: NotificationPreference }) {
           Critical/high alerts of this type {preference.email_enabled ? 'also email you' : 'stay in-app only'}.
         </p>
         {state && 'error' in state && (
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{state.error}</p>
+          <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{state.error}</p>
         )}
       </div>
       <form action={action}>

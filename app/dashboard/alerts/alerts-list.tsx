@@ -103,10 +103,11 @@ function AlertCard({ flag, state, emailed }: AlertItem & { emailed: boolean }) {
         <div className="flex items-start gap-2">
           {!isRead && !isDismissed && (
             <span
-              aria-label="Unread"
+              aria-hidden="true"
               className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
             />
           )}
+          {!isRead && !isDismissed && <span className="sr-only">Unread: </span>}
           <h3 className="font-medium">{flag.title}</h3>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
@@ -158,10 +159,10 @@ function AlertCard({ flag, state, emailed }: AlertItem & { emailed: boolean }) {
       )}
 
       {readState && 'error' in readState && (
-        <p className="mt-2 text-right text-sm text-red-600 dark:text-red-400">{readState.error}</p>
+        <p role="alert" className="mt-2 text-right text-sm text-red-600 dark:text-red-400">{readState.error}</p>
       )}
       {dismissState && 'error' in dismissState && (
-        <p className="mt-2 text-right text-sm text-red-600 dark:text-red-400">{dismissState.error}</p>
+        <p role="alert" className="mt-2 text-right text-sm text-red-600 dark:text-red-400">{dismissState.error}</p>
       )}
     </div>
   )

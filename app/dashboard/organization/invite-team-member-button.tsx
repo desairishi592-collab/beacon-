@@ -53,10 +53,10 @@ export function InviteTeamMemberButton() {
       </div>
 
       {state && 'error' in state && (
-        <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}
       {state && 'success' in state && (
-        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Invite sent to {state.email}.</p>
+        <p role="status" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Invite sent to {state.email}.</p>
       )}
 
       <div className="flex justify-end gap-2">

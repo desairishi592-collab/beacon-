@@ -18,10 +18,10 @@ export function SyncButton() {
         {pending ? 'Syncing…' : 'Sync now'}
       </button>
       {state && 'error' in state && (
-        <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}
       {state && 'snapshotsSynced' in state && (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        <p role="status" className="text-sm text-neutral-500 dark:text-neutral-400">
           Synced {state.snapshotsSynced} {state.snapshotsSynced === 1 ? 'period' : 'periods'}.
         </p>
       )}
