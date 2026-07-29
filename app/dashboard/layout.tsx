@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await db
     .from('profiles')
-    .select('name, field')
+    .select('name, field, team_role')
     .eq('id', userId)
     .maybeSingle()
 
@@ -44,7 +44,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
-        <DashboardNav field={profile?.field} unreadAlertCount={unreadAlertCount} />
+        <DashboardNav
+          field={profile?.field}
+          unreadAlertCount={unreadAlertCount}
+          isTeamAdmin={profile?.team_role === 'admin'}
+        />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>

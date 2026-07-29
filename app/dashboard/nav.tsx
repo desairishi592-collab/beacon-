@@ -14,7 +14,15 @@ function BellIcon() {
   )
 }
 
-export function DashboardNav({ field, unreadAlertCount = 0 }: { field?: Field; unreadAlertCount?: number }) {
+export function DashboardNav({
+  field,
+  unreadAlertCount = 0,
+  isTeamAdmin = false,
+}: {
+  field?: Field
+  unreadAlertCount?: number
+  isTeamAdmin?: boolean
+}) {
   const pathname = usePathname()
 
   // Finance has a real data integration (QuickBooks); other fields get the
@@ -25,6 +33,7 @@ export function DashboardNav({ field, unreadAlertCount = 0 }: { field?: Field; u
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/check-in', label: 'Check-in' },
           { href: '/dashboard/check-in/history', label: 'History' },
+          ...(isTeamAdmin ? [{ href: '/dashboard/team', label: 'Team' }] : []),
           { href: '/dashboard/settings', label: 'Settings' },
         ]
       : [
@@ -32,6 +41,7 @@ export function DashboardNav({ field, unreadAlertCount = 0 }: { field?: Field; u
           { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
           { href: '/dashboard/alerts', label: 'Alerts', badge: unreadAlertCount },
+          ...(isTeamAdmin ? [{ href: '/dashboard/team', label: 'Team' }] : []),
           { href: '/dashboard/settings', label: 'Settings' },
         ]
 

@@ -8,7 +8,7 @@ const { createAdminClient } = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
-import { resolveInviteTeamId } from './team-invites'
+import { resolveInviteTeamId, removeTeamMember, leaveTeam } from './team-invites'
 
 describe('resolveInviteTeamId', () => {
   let inviteMaybeSingle: ReturnType<typeof vi.fn>
@@ -98,6 +98,136 @@ describe('resolveInviteTeamId', () => {
     const teamId = await resolveInviteTeamId('invite-1', 'newhire@example.com')
 
     expect(teamId).toBeUndefined()
+    expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe('removeTeamMember', () => {
+  let profilesMaybeSingle: ReturnType<typeof vi.fn>
+  let profilesSelectEq: ReturnType<typeof vi.fn>
+  let profilesSelect: ReturnType<typeof vi.fn>
+  let updateEq: ReturnType<typeof vi.fn>
+  let update: ReturnType<typeof vi.fn>
+  let from: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    profilesMaybeSingle = vi.fn()
+    profilesSelectEq = vi.fn(() => ({ maybeSingle: profilesMaybeSingle }))
+    profilesSelect = vi.fn(() => ({ eq: profilesSelectEq }))
+    updateEq = vi.fn().mockResolvedValue({ error: null })
+    update = vi.fn(() => ({ eq: updateEq }))
+
+    from = vi.fn((table: string) => {
+      if (table === 'profiles') return { select: profilesSelect, update }
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    createAdminClient.mockReturnValue({ from })
+  })
+
+  it('resets the member to a fresh solo team when the caller is the team admin', async () => {
+    profilesMaybeSingle
+      .mockResolvedValueOnce({ data: { team_id: 'team-abc', team_role: 'admin' } })
+      .mockResolvedValueOnce({ data: { team_id: 'team-abc' } })
+
+    const result = await removeTeamMember('admin-1', 'member-1')
+
+    expect(result).toBeUndefined()
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ team_role: 'admin', team_id: expect.any(String) })
+    )
+    expect(updateEq).toHaveBeenCalledWith('id', 'member-1')
+  })
+
+  it('rejects removing yourself', async () => {
+    const result = await removeTeamMember('user-1', 'user-1')
+
+    expect(result).toBe('not_admin')
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('rejects when the caller is not an admin', async () => {
+    profilesMaybeSingle.mockResolvedValueOnce({ data: { team_id: 'team-abc', team_role: 'member' } })
+
+    const result = await removeTeamMember('admin-1', 'member-1')
+
+    expect(result).toBe('not_admin')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('rejects when the target profile does not exist', async () => {
+    profilesMaybeSingle
+      .mockResolvedValueOnce({ data: { team_id: 'team-abc', team_role: 'admin' } })
+      .mockResolvedValueOnce({ data: null })
+
+    const result = await removeTeamMember('admin-1', 'member-1')
+
+    expect(result).toBe('not_found')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('rejects when the target is on a different team', async () => {
+    profilesMaybeSingle
+      .mockResolvedValueOnce({ data: { team_id: 'team-abc', team_role: 'admin' } })
+      .mockResolvedValueOnce({ data: { team_id: 'team-xyz' } })
+
+    const result = await removeTeamMember('admin-1', 'member-1')
+
+    expect(result).toBe('not_teammate')
+    expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe('leaveTeam', () => {
+  let profilesMaybeSingle: ReturnType<typeof vi.fn>
+  let profilesSelectEq: ReturnType<typeof vi.fn>
+  let profilesSelect: ReturnType<typeof vi.fn>
+  let updateEq: ReturnType<typeof vi.fn>
+  let update: ReturnType<typeof vi.fn>
+  let from: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    profilesMaybeSingle = vi.fn()
+    profilesSelectEq = vi.fn(() => ({ maybeSingle: profilesMaybeSingle }))
+    profilesSelect = vi.fn(() => ({ eq: profilesSelectEq }))
+    updateEq = vi.fn().mockResolvedValue({ error: null })
+    update = vi.fn(() => ({ eq: updateEq }))
+
+    from = vi.fn((table: string) => {
+      if (table === 'profiles') return { select: profilesSelect, update }
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    createAdminClient.mockReturnValue({ from })
+  })
+
+  it('resets a member to a fresh solo team', async () => {
+    profilesMaybeSingle.mockResolvedValue({ data: { team_role: 'member' } })
+
+    const result = await leaveTeam('member-1')
+
+    expect(result).toBeUndefined()
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ team_role: 'admin', team_id: expect.any(String) })
+    )
+    expect(updateEq).toHaveBeenCalledWith('id', 'member-1')
+  })
+
+  it('rejects when the profile no longer exists', async () => {
+    profilesMaybeSingle.mockResolvedValue({ data: null })
+
+    const result = await leaveTeam('member-1')
+
+    expect(result).toBe('not_found')
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('rejects an admin trying to leave their own team', async () => {
+    profilesMaybeSingle.mockResolvedValue({ data: { team_role: 'admin' } })
+
+    const result = await leaveTeam('admin-1')
+
+    expect(result).toBe('is_admin')
     expect(update).not.toHaveBeenCalled()
   })
 })

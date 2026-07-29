@@ -1,5 +1,7 @@
 export type Field = 'finance' | 'medicine' | 'engineering' | 'other'
 
+export type TeamRole = 'admin' | 'member'
+
 export type Profile = {
   id: string
   name: string
@@ -7,11 +9,12 @@ export type Profile = {
   field: Field
   team_size: number
   team_id: string
+  team_role: TeamRole
   created_at: string
   updated_at: string
 }
 
-export type TeamInviteStatus = 'pending' | 'accepted'
+export type TeamInviteStatus = 'pending' | 'accepted' | 'revoked'
 
 export type TeamInvite = {
   id: string
@@ -133,6 +136,7 @@ export type Database = {
           field: Field
           team_size: number
           team_id: string
+          team_role: TeamRole
         }>
         Relationships: []
       }
