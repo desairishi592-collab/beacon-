@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getCurrentSession } from '@/lib/current-user'
 import { isManualCheckinField } from '@/lib/check-ins/questions'
+import { FinancialTrends } from './_components/financial-trends'
 
 export default async function DashboardHomePage() {
   const session = await getCurrentSession()
@@ -10,6 +11,16 @@ export default async function DashboardHomePage() {
     : { data: null }
 
   const showCheckInPath = profile ? isManualCheckinField(profile.field) : false
+
+  const { data: snapshots } =
+    session && profile && !showCheckInPath
+      ? await session.db
+          .from('financial_snapshots')
+          .select('*')
+          .eq('profile_id', session.userId)
+          .order('period_end', { ascending: true })
+          .limit(12)
+      : { data: null }
 
   return (
     <div>
@@ -35,6 +46,8 @@ export default async function DashboardHomePage() {
             Go to check-in
           </Link>
         </div>
+      ) : snapshots && snapshots.length > 0 ? (
+        <FinancialTrends snapshots={snapshots} />
       ) : (
         <div className="mt-8 rounded-lg border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
           <p className="text-neutral-500 dark:text-neutral-400">No integrations connected yet.</p>
