@@ -63,11 +63,12 @@ export default async function RootPage() {
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center sm:py-28">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Risk monitoring for medical teams
+            Risk monitoring for medical middle managers
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500 dark:text-neutral-400">
-            Beacon keeps a running check on the health of your team — lightweight weekly check-ins
-            and one dashboard that tells you what needs attention today.
+            Charge nurses, clinical directors, and department leads use Beacon to keep a running
+            check on their unit — lightweight weekly check-ins and one dashboard that tells you
+            what needs attention today.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Link
@@ -116,7 +117,7 @@ export default async function RootPage() {
 
         <section id="features" className="mx-auto max-w-5xl px-6 pb-24">
           <h2 className="text-center text-2xl font-semibold tracking-tight">
-            Everything you need to stay ahead of risk
+            Everything you need to stay ahead of risk on your unit
           </h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature) => (
@@ -152,7 +153,7 @@ export default async function RootPage() {
 
       <footer className="border-t border-neutral-200 py-6 dark:border-neutral-800">
         <div className="mx-auto max-w-5xl px-6 text-center text-sm text-neutral-400 dark:text-neutral-600">
-          Beacon — risk monitoring for medical teams.
+          Beacon — risk monitoring for medical middle managers.
         </div>
       </footer>
     </div>
