@@ -141,28 +141,3 @@ describe('sendWeeklyDigests', () => {
     await expect(sendWeeklyDigests('https://app.beacon.test')).rejects.toEqual({ message: 'db is down' })
   })
 })
-
-describe('SCRATCH preview (temporary, will be removed)', () => {
-  it('prints the rendered digest HTML for manual inspection', async () => {
-    process.env.SENDGRID_API_KEY = 'test-key'
-    process.env.SENDGRID_FROM_EMAIL = 'alerts@beacon.test'
-    getUserById.mockResolvedValue({ data: { user: { email: 'founder@example.com' } }, error: null })
-    getDashboardSummary.mockResolvedValue({
-      riskFlagCounts: { critical: 1, high: 0, medium: 2, low: 1 },
-      overallStatus: 'critical',
-      lastActivityAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-      lastActivityLabel: 'sync',
-      urgentIndicator: { kind: 'cash_runway_critical', runwayMonths: 0.6, title: 'Cash runway critically low' },
-    })
-    const db = makeDb([{ id: 'profile-1', field: 'finance' }])
-    createAdminClient.mockReturnValue(db)
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => '' })
-    vi.stubGlobal('fetch', fetchMock)
-
-    await sendWeeklyDigests('https://app.beacon.test')
-
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-    console.log('SUBJECT:', body.subject)
-    console.log('HTML:', body.content[0].value)
-  })
-})

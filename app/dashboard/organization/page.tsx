@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
+import { severityTrend } from '@/lib/check-ins/trends'
 import { ConfirmActionButton } from '../_components/confirm-action-button'
 import { InviteTeamMemberButton } from './invite-team-member-button'
+import { DownloadTeamOverviewButton } from './download-team-overview-button'
+import type { TeamOverviewRow } from '@/lib/organization/csv'
 import { revokeInvite, removeTeamMember } from './actions'
 
 // Admin-only: rendering is gated behind the nav link, but that's not a
@@ -26,7 +31,7 @@ export default async function OrganizationPage() {
   const [{ data: teamMembers }, { data: pendingInvites }] = await Promise.all([
     db
       .from('profiles')
-      .select('id, name, role, team_role')
+      .select('id, name, role, team_role, field')
       .eq('team_id', profile.team_id)
       .neq('id', userId)
       .order('name', { ascending: true }),
@@ -37,6 +42,49 @@ export default async function OrganizationPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
   ])
+
+  // Overview rows for the CSV export below — finance members get their last
+  // QuickBooks sync (same admin-client read as financial-overview.tsx, since
+  // quickbooks_connections has no user-facing select policy), everyone else
+  // gets their last check-in date and severity trend (same manual_checkins
+  // read already used per-teammate in app/dashboard/team/page.tsx).
+  const overviewRows: TeamOverviewRow[] = await Promise.all(
+    (teamMembers ?? []).map(async (member): Promise<TeamOverviewRow> => {
+      if (!isManualCheckinField(member.field)) {
+        const adminDb = createAdminClient()
+        const { data: connection } = await adminDb
+          .from('quickbooks_connections')
+          .select('last_synced_at')
+          .eq('profile_id', member.id)
+          .maybeSingle()
+
+        return {
+          name: member.name,
+          role: member.role,
+          teamRole: member.team_role,
+          track: 'sync',
+          lastSyncAt: connection?.last_synced_at ?? null,
+        }
+      }
+
+      const { data: checkins } = await db
+        .from('manual_checkins')
+        .select('*')
+        .eq('profile_id', member.id)
+        .order('created_at', { ascending: false })
+        .limit(6)
+      const checkinsOldestFirst = [...(checkins ?? [])].reverse()
+
+      return {
+        name: member.name,
+        role: member.role,
+        teamRole: member.team_role,
+        track: 'check-in',
+        lastCheckInAt: checkinsOldestFirst.at(-1)?.created_at ?? null,
+        trendDelta: severityTrend(checkinsOldestFirst).delta,
+      }
+    }),
+  )
 
   return (
     <div className="space-y-6">
@@ -60,7 +108,10 @@ export default async function OrganizationPage() {
       </div>
 
       <div className="max-w-md rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="text-sm font-medium">Members</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium">Members</h2>
+          {teamMembers && teamMembers.length > 0 && <DownloadTeamOverviewButton rows={overviewRows} />}
+        </div>
 
         {teamMembers && teamMembers.length > 0 ? (
           <ul className="mt-4 space-y-2">
