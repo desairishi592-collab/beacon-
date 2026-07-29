@@ -21,6 +21,7 @@ export function DashboardNav({ field }: { field?: Field }) {
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
+          { href: '/dashboard/alerts', label: 'Alerts' },
           { href: '/dashboard/settings', label: 'Settings' },
         ]
 

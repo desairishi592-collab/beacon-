@@ -45,6 +45,15 @@ export type RiskFlag = {
   created_at: string
 }
 
+export type AlertState = {
+  id: string
+  risk_flag_id: string
+  profile_id: string
+  read_at: string | null
+  dismissed_at: string | null
+  created_at: string
+}
+
 export type ManualCheckin = {
   id: string
   profile_id: string
@@ -154,6 +163,21 @@ export type Database = {
           title: string
           explanation: string
           recommendation: string
+        }>
+        Relationships: []
+      }
+      alert_states: {
+        Row: AlertState
+        Insert: {
+          id?: string
+          risk_flag_id: string
+          profile_id: string
+          read_at?: string | null
+          dismissed_at?: string | null
+        }
+        Update: Partial<{
+          read_at: string | null
+          dismissed_at: string | null
         }>
         Relationships: []
       }
