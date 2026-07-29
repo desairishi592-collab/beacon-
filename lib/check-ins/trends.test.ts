@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ManualCheckin } from '@/lib/supabase/types'
 import type { CheckInQuestion } from './questions'
-import { recurringRiskAreas, severityTrend } from './trends'
+import { monthOverMonthComparison, recurringRiskAreas, severityTrend } from './trends'
 
 const QUESTIONS: CheckInQuestion[] = [
   { id: 'timeline_risk', prompt: 'Is any active project at risk of missing its deadline?' },
@@ -66,5 +66,58 @@ describe('severityTrend', () => {
     ]
     const trend = severityTrend(checkins, 2)
     expect(trend.delta).toBe(-4)
+  })
+})
+
+describe('monthOverMonthComparison', () => {
+  it('returns null when all check-ins fall within a single calendar month', () => {
+    const checkins = [checkin({ timeline_risk: 1 }, '2026-01-01'), checkin({ timeline_risk: 4 }, '2026-01-20')]
+    expect(monthOverMonthComparison(checkins, QUESTIONS)).toBeNull()
+  })
+
+  it('reports an "up" (worsening) trend when this month is more severe than last month', () => {
+    const checkins = [
+      checkin({ timeline_risk: 1, tech_debt: 1 }, '2026-01-05'),
+      checkin({ timeline_risk: 1, tech_debt: 1 }, '2026-01-20'),
+      checkin({ timeline_risk: 5, tech_debt: 5 }, '2026-02-05'),
+    ]
+    const comparison = monthOverMonthComparison(checkins, QUESTIONS)
+    expect(comparison?.currentLabel).toBe('February 2026')
+    expect(comparison?.priorLabel).toBe('January 2026')
+    expect(comparison?.trend).toBe('up')
+    expect(comparison?.delta).toBeCloseTo(4)
+  })
+
+  it('reports a "down" (improving) trend when this month is less severe than last month', () => {
+    const checkins = [
+      checkin({ timeline_risk: 5 }, '2026-01-05'),
+      checkin({ timeline_risk: 1 }, '2026-02-05'),
+    ]
+    const comparison = monthOverMonthComparison(checkins, QUESTIONS)
+    expect(comparison?.trend).toBe('down')
+  })
+
+  it('reports a "flat" trend when the delta between months is negligible', () => {
+    const checkins = [checkin({ timeline_risk: 3 }, '2026-01-05'), checkin({ timeline_risk: 3 }, '2026-02-05')]
+    const comparison = monthOverMonthComparison(checkins, QUESTIONS)
+    expect(comparison?.trend).toBe('flat')
+  })
+
+  it('surfaces a question as a new risk area only when flagged this month but not last month', () => {
+    const checkins = [
+      checkin({ timeline_risk: 1, tech_debt: 1 }, '2026-01-05'),
+      checkin({ timeline_risk: 4, tech_debt: 1 }, '2026-02-05'),
+    ]
+    const comparison = monthOverMonthComparison(checkins, QUESTIONS)
+    expect(comparison?.newRiskAreas).toEqual([{ questionId: 'timeline_risk', prompt: QUESTIONS[0].prompt }])
+  })
+
+  it('does not surface a risk area as new if it was already flagged last month', () => {
+    const checkins = [
+      checkin({ timeline_risk: 4 }, '2026-01-05'),
+      checkin({ timeline_risk: 4 }, '2026-02-05'),
+    ]
+    const comparison = monthOverMonthComparison(checkins, QUESTIONS)
+    expect(comparison?.newRiskAreas).toEqual([])
   })
 })

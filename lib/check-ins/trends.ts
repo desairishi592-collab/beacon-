@@ -53,3 +53,76 @@ export function severityTrend(checkinsOldestFirst: ManualCheckin[], windowSize =
     delta: prior.length > 0 ? average(recent) - average(prior) : null,
   }
 }
+
+function monthKey(createdAt: string) {
+  const d = new Date(createdAt)
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+function monthLabel(createdAt: string) {
+  return new Date(createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
+export type NewRiskArea = {
+  questionId: string
+  prompt: string
+}
+
+export type PeriodComparison = {
+  currentLabel: string
+  priorLabel: string
+  currentAverage: number
+  priorAverage: number
+  delta: number
+  trend: 'up' | 'down' | 'flat'
+  // Questions flagged moderate-or-worse at least once this period that
+  // weren't flagged at all in the prior period.
+  newRiskAreas: NewRiskArea[]
+}
+
+// Compares the most recent calendar month with check-ins against the one
+// before it (by calendar month, not just the prior N submissions), so
+// callers can render a "this month vs last month" style indicator. Returns
+// null until check-ins span at least two distinct calendar months.
+export function monthOverMonthComparison(
+  checkinsOldestFirst: ManualCheckin[],
+  questions: CheckInQuestion[],
+): PeriodComparison | null {
+  const months = Array.from(new Set(checkinsOldestFirst.map((c) => monthKey(c.created_at)))).sort()
+  if (months.length < 2) return null
+
+  const currentMonth = months[months.length - 1]
+  const priorMonth = months[months.length - 2]
+  const currentCheckins = checkinsOldestFirst.filter((c) => monthKey(c.created_at) === currentMonth)
+  const priorCheckins = checkinsOldestFirst.filter((c) => monthKey(c.created_at) === priorMonth)
+
+  const average = (checkins: ManualCheckin[]) =>
+    checkins.reduce((sum, c) => sum + overallSeverity(c.responses), 0) / checkins.length
+
+  const currentAverage = average(currentCheckins)
+  const priorAverage = average(priorCheckins)
+  const delta = currentAverage - priorAverage
+  const trend: PeriodComparison['trend'] = Math.abs(delta) < 0.25 ? 'flat' : delta > 0 ? 'up' : 'down'
+
+  const flaggedQuestionIds = (checkins: ManualCheckin[]) =>
+    new Set(
+      questions
+        .filter((q) => checkins.some((c) => (c.responses[q.id] ?? 0) >= MODERATE_RATING_THRESHOLD))
+        .map((q) => q.id),
+    )
+  const currentFlagged = flaggedQuestionIds(currentCheckins)
+  const priorFlagged = flaggedQuestionIds(priorCheckins)
+  const newRiskAreas = questions
+    .filter((q) => currentFlagged.has(q.id) && !priorFlagged.has(q.id))
+    .map((q) => ({ questionId: q.id, prompt: q.prompt }))
+
+  return {
+    currentLabel: monthLabel(currentCheckins[0].created_at),
+    priorLabel: monthLabel(priorCheckins[0].created_at),
+    currentAverage,
+    priorAverage,
+    delta,
+    trend,
+    newRiskAreas,
+  }
+}

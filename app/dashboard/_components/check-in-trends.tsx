@@ -6,7 +6,13 @@ import type { ManualCheckin } from '@/lib/supabase/types'
 import type { CheckInQuestion } from '@/lib/check-ins/questions'
 import { RATING_SCALE } from '@/lib/check-ins/questions'
 import { overallSeverity, severityBand, type SeverityBand } from '@/lib/check-ins/severity'
-import { recurringRiskAreas, severityTrend, type RecurringRiskArea } from '@/lib/check-ins/trends'
+import {
+  monthOverMonthComparison,
+  recurringRiskAreas,
+  severityTrend,
+  type PeriodComparison,
+  type RecurringRiskArea,
+} from '@/lib/check-ins/trends'
 
 const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r.label]))
 
@@ -217,6 +223,69 @@ function TrendIndicator({ delta }: { delta: number | null }) {
   )
 }
 
+const PERIOD_TREND_COPY: Record<PeriodComparison['trend'], string> = {
+  up: 'Worsening',
+  down: 'Improving',
+  flat: 'Steady',
+}
+const PERIOD_TREND_ARROW: Record<PeriodComparison['trend'], string> = {
+  up: '↑',
+  down: '↓',
+  flat: '→',
+}
+const PERIOD_TREND_TEXT: Record<PeriodComparison['trend'], string> = {
+  up: 'text-red-600 dark:text-red-400',
+  down: 'text-green-600 dark:text-green-400',
+  flat: 'text-neutral-500 dark:text-neutral-400',
+}
+
+// Small "this month vs last month" indicator that sits above the summary
+// cards — the check-in track's answer to how FinancialTrends shows % deltas
+// vs prior month, but calendar-month based and paired with which risk areas
+// are new this period rather than a currency delta.
+function PeriodComparisonIndicator({ comparison }: { comparison: PeriodComparison | null }) {
+  if (!comparison) {
+    return (
+      <div className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+        Month-over-month comparison needs check-ins from a second calendar month.
+      </div>
+    )
+  }
+
+  const { trend, currentLabel, priorLabel, newRiskAreas } = comparison
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <div>
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+          {currentLabel} vs {priorLabel}
+        </p>
+        <p className={`mt-1 text-lg font-semibold tracking-tight ${PERIOD_TREND_TEXT[trend]}`}>
+          {PERIOD_TREND_ARROW[trend]} {PERIOD_TREND_COPY[trend]}
+        </p>
+      </div>
+
+      {newRiskAreas.length > 0 && (
+        <div className="text-right">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">New this period</p>
+          <ul className="mt-1 space-y-0.5">
+            {newRiskAreas.map((area) => (
+              <li key={area.questionId}>
+                <Link
+                  href={`/dashboard/check-in/history/${area.questionId}`}
+                  className="text-sm font-medium text-neutral-700 hover:underline dark:text-neutral-300"
+                >
+                  {area.prompt}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SummaryCards({ checkins }: { checkins: ManualCheckin[] }) {
   const latest = checkins[checkins.length - 1]
   const latestBand = severityBand(overallSeverity(latest.responses))
@@ -332,9 +401,12 @@ export function CheckInTrends({
   questions: CheckInQuestion[]
 }) {
   const areas = recurringRiskAreas(checkins, questions)
+  const periodComparison = monthOverMonthComparison(checkins, questions)
 
   return (
     <div className="space-y-6">
+      <PeriodComparisonIndicator comparison={periodComparison} />
+
       <SummaryCards checkins={checkins} />
 
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
