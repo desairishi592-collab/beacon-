@@ -15,6 +15,7 @@ export function DashboardNav({ field }: { field?: Field }) {
       ? [
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/check-in', label: 'Check-in' },
+          { href: '/dashboard/check-in/history', label: 'History' },
           { href: '/dashboard/settings', label: 'Settings' },
         ]
       : [

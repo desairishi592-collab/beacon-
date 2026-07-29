@@ -1,18 +1,9 @@
+import Link from 'next/link'
 import type { ManualCheckin } from '@/lib/supabase/types'
 import { getCheckInQuestions, RATING_SCALE, type ManualCheckinField } from '@/lib/check-ins/questions'
+import { MODERATE_RATING_THRESHOLD, overallSeverity, SEVERE_RATING_THRESHOLD } from '@/lib/check-ins/severity'
 
 const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r.label]))
-
-// Same threshold as notifySevereCheckin (lib/notifications/check-in-email.ts)
-// so a check-in reads as "severe" here exactly when it would have triggered
-// an alert email.
-const SEVERE_RATING_THRESHOLD = 4
-const MODERATE_RATING_THRESHOLD = 3
-
-function overallSeverity(responses: Record<string, number>): number {
-  const values = Object.values(responses)
-  return values.length > 0 ? Math.max(...values) : 0
-}
 
 function SeverityBadge({ rating }: { rating: number }) {
   const className =
@@ -77,6 +68,21 @@ export function CheckInHistory({ checkins }: { checkins: ManualCheckin[] }) {
       {checkins.map((checkin) => (
         <CheckInCard key={checkin.id} checkin={checkin} />
       ))}
+    </div>
+  )
+}
+
+// Shown above the dashboard home page's CheckInHistory, linking out to the
+// full history & trends view at /dashboard/check-in/history.
+export function CheckInHistoryLink() {
+  return (
+    <div className="mt-6 flex justify-end">
+      <Link
+        href="/dashboard/check-in/history"
+        className="text-sm font-medium text-neutral-600 hover:underline dark:text-neutral-300"
+      >
+        View full history &amp; trends →
+      </Link>
     </div>
   )
 }

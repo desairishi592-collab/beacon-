@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { CurrentSession } from '@/lib/current-user'
-import { CheckInHistory } from './check-in-history'
+import { CheckInHistory, CheckInHistoryLink } from './check-in-history'
 
 function EmptyStateCard() {
   return (
@@ -44,5 +44,10 @@ export async function CheckInOverview({
     return <EmptyStateCard />
   }
 
-  return <CheckInHistory checkins={checkins} />
+  return (
+    <>
+      <CheckInHistoryLink />
+      <CheckInHistory checkins={checkins} />
+    </>
+  )
 }
