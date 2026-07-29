@@ -9,28 +9,28 @@ import { SEVERITY_ORDER, SEVERITY_LABEL, daysSince, formatRunway } from '@/lib/d
 import { CopySummaryButton } from './copy-summary-button'
 import type { RiskSeverity } from '@/lib/supabase/types'
 
-// Same red/blue urgent-vs-informational split as the risk flags list
-// (app/dashboard/risk-flags/risk-flags-list.tsx), plus amber/neutral for the
-// two severities that don't carry that urgent treatment there.
+// Same red/neutral urgent-vs-informational split as the risk flags list
+// (app/dashboard/risk-flags/risk-flags-list.tsx), plus a lighter red for the
+// "medium" severity that doesn't carry that urgent treatment there.
 const SEVERITY_CLASSES: Record<RiskSeverity, string> = {
   critical: 'text-red-700 dark:text-red-400',
   high: 'text-red-700 dark:text-red-400',
-  medium: 'text-amber-700 dark:text-amber-400',
+  medium: 'text-red-600 dark:text-red-300',
   low: 'text-neutral-700 dark:text-neutral-300',
 }
 
 const STATUS_COPY: Record<OverallStatus, { label: string; className: string }> = {
   healthy: {
     label: 'Healthy',
-    className: 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400',
+    className: 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300',
   },
   needs_attention: {
     label: 'Needs attention',
-    className: 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
+    className: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400',
   },
   critical: {
     label: 'Critical',
-    className: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400',
+    className: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
   },
 }
 
@@ -45,9 +45,9 @@ function StatusBadge({ status }: { status: OverallStatus }) {
   )
 }
 
-// Red for cash runway critical (matches the "critical" severity treatment
-// elsewhere on the dashboard), amber for check-in overdue (a softer,
-// reminder-level urgency, matching the "needs attention" status color).
+// Strong red for cash runway critical (matches the "critical" severity
+// treatment elsewhere on the dashboard), lighter red for check-in overdue (a
+// softer, reminder-level urgency, matching the "needs attention" status color).
 const URGENT_CLASSES: Record<UrgentIndicator['kind'], { container: string; title: string; body: string }> = {
   cash_runway_critical: {
     container: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950',
@@ -55,9 +55,9 @@ const URGENT_CLASSES: Record<UrgentIndicator['kind'], { container: string; title
     body: 'text-red-700 dark:text-red-400',
   },
   check_in_overdue: {
-    container: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950',
-    title: 'text-amber-800 dark:text-amber-300',
-    body: 'text-amber-700 dark:text-amber-400',
+    container: 'border-red-100 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/40',
+    title: 'text-red-600 dark:text-red-400',
+    body: 'text-red-600 dark:text-red-400',
   },
 }
 

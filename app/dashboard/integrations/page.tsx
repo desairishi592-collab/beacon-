@@ -51,12 +51,12 @@ export default async function IntegrationsPage({
         </p>
       )}
       {params.connected && params.qb_sync_error && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
+        <p className="rounded-md border border-red-100 bg-red-50/50 px-4 py-3 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-400">
           Connected, but the initial sync failed: {params.qb_sync_error}
         </p>
       )}
       {params.connected && !params.qb_sync_error && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
+        <p className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
           QuickBooks connected and synced.
         </p>
       )}
@@ -104,7 +104,7 @@ export default async function IntegrationsPage({
                     <span
                       className={
                         run.status === 'success'
-                          ? 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500'
+                          ? 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400 dark:bg-neutral-500'
                           : 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500'
                       }
                     />

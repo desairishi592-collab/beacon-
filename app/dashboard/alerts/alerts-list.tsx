@@ -46,7 +46,7 @@ function SeverityBadge({ severity }: { severity: RiskSeverity }) {
       className={
         urgent
           ? 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-400'
-          : 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-400'
+          : 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
       }
     >
       {urgent ? (
@@ -104,7 +104,7 @@ function AlertCard({ flag, state, emailed }: AlertItem & { emailed: boolean }) {
           {!isRead && !isDismissed && (
             <span
               aria-label="Unread"
-              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600 dark:bg-blue-400"
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
             />
           )}
           <h3 className="font-medium">{flag.title}</h3>

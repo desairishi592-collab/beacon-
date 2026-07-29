@@ -20,12 +20,14 @@ function formatMonth(periodEnd: string) {
   return new Date(periodEnd).toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
 }
 
-// Series colors follow the app's fixed categorical order (blue, orange, aqua) —
-// the CVD-safe adjacent triple defined as --chart-* vars in globals.css.
+// Series colors follow the app's fixed categorical order (black, red, gray) —
+// defined as --chart-* vars in globals.css. Since red/black/gray can't lean on
+// distinct hues the way the old blue/orange/aqua triple did, each series also
+// gets a distinct stroke-dasharray so overlapping lines stay tellable apart.
 const SERIES = [
-  { key: 'total_revenue', label: 'Revenue', color: 'var(--chart-revenue)' },
-  { key: 'total_expenses', label: 'Expenses', color: 'var(--chart-expenses)' },
-  { key: 'operating_income', label: 'Operating income', color: 'var(--chart-operating-income)' },
+  { key: 'total_revenue', label: 'Revenue', color: 'var(--chart-revenue)', dash: undefined },
+  { key: 'total_expenses', label: 'Expenses', color: 'var(--chart-expenses)', dash: '6 3' },
+  { key: 'operating_income', label: 'Operating income', color: 'var(--chart-operating-income)', dash: '1.5 3' },
 ] as const
 
 function niceNum(range: number, round: boolean) {
@@ -139,6 +141,7 @@ function TrendChart({ snapshots }: { snapshots: FinancialSnapshot[] }) {
             fill="none"
             stroke={series.color}
             strokeWidth={2}
+            strokeDasharray={series.dash}
             strokeLinejoin="round"
             strokeLinecap="round"
           />
@@ -193,7 +196,7 @@ function TrendChart({ snapshots }: { snapshots: FinancialSnapshot[] }) {
               onFocus={() => setActiveIndex(i)}
               onMouseLeave={() => setActiveIndex(null)}
               onBlur={() => setActiveIndex(null)}
-              className="cursor-pointer outline-none"
+              className="cursor-pointer outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-neutral-900 dark:focus-visible:outline-white"
             />
           )
         })}
@@ -257,7 +260,7 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="h-6 w-[72px]" aria-hidden="true">
       <path d={path} fill="none" stroke="currentColor" strokeWidth={1.5} className="text-neutral-300 dark:text-neutral-700" />
-      <circle cx={lastX} cy={lastY} r={2.5} className="fill-blue-600 dark:fill-blue-400" />
+      <circle cx={lastX} cy={lastY} r={2.5} className="fill-neutral-900 dark:fill-neutral-100" />
     </svg>
   )
 }
@@ -297,7 +300,7 @@ function Delta({ value, upIsGood }: { value: number | null; upIsGood: boolean })
     <span
       className={
         isGood
-          ? 'text-xs font-medium text-green-600 dark:text-green-400'
+          ? 'text-xs font-medium text-neutral-600 dark:text-neutral-400'
           : 'text-xs font-medium text-red-600 dark:text-red-400'
       }
     >

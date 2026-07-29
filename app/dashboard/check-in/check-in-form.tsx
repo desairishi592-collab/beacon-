@@ -24,7 +24,7 @@ export function CheckInForm({ questions }: { questions: CheckInQuestion[] }) {
             {RATING_SCALE.map((option) => (
               <label
                 key={option.value}
-                className="flex cursor-pointer items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white dark:border-neutral-700 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white dark:has-[:checked]:text-neutral-900"
+                className="flex cursor-pointer items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm has-[:checked]:border-neutral-900 has-[:checked]:bg-neutral-900 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neutral-900 has-[:focus-visible]:ring-offset-2 dark:border-neutral-700 dark:has-[:checked]:border-white dark:has-[:checked]:bg-white dark:has-[:checked]:text-neutral-900 dark:has-[:focus-visible]:ring-white dark:has-[:focus-visible]:ring-offset-neutral-950"
               >
                 <input
                   type="radio"
@@ -53,10 +53,10 @@ export function CheckInForm({ questions }: { questions: CheckInQuestion[] }) {
       </div>
 
       {state && 'error' in state && (
-        <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}
       {state && 'success' in state && (
-        <p className="text-sm text-green-600 dark:text-green-400">Check-in recorded.</p>
+        <p role="status" className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Check-in recorded.</p>
       )}
 
       <button

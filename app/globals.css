@@ -3,11 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  /* Categorical chart series colors — fixed order (blue, orange, aqua) picked
-     for CVD-safe adjacency; keep this order for any new chart series. */
-  --chart-revenue: #2a78d6;
-  --chart-expenses: #eb6834;
-  --chart-operating-income: #1baf7a;
+  /* Categorical chart series colors — red/black/gray palette only, so series
+     are told apart by lightness/weight (not hue) plus stroke-dasharray in
+     financial-trends.tsx. Keep this order for any new chart series. */
+  --chart-revenue: #171717;
+  --chart-expenses: #dc2626;
+  --chart-operating-income: #a3a3a3;
 }
 
 @theme inline {
@@ -21,9 +22,9 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-    --chart-revenue: #3987e5;
-    --chart-expenses: #d95926;
-    --chart-operating-income: #199e70;
+    --chart-revenue: #ededed;
+    --chart-expenses: #f87171;
+    --chart-operating-income: #737373;
   }
 }
 

@@ -7,10 +7,10 @@ const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r
 export function SeverityBadge({ rating }: { rating: number }) {
   const className =
     rating >= SEVERE_RATING_THRESHOLD
-      ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+      ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
       : rating >= MODERATE_RATING_THRESHOLD
-        ? 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-        : 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400'
+        ? 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400'
+        : 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
 
   return (
     <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ${className}`}>

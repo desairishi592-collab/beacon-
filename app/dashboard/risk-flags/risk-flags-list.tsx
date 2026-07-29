@@ -5,8 +5,8 @@ import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
 import { DownloadRiskFlagsReportButton } from './download-risk-flags-report-button'
 
 // Two-tier visual treatment over the four-value severity column: critical/high
-// read as "urgent" (red, warning icon), medium/low as "informational" (blue,
-// info icon). Same split as the insurance analyzer's flag list.
+// read as "urgent" (red, warning icon), medium/low as "informational" (neutral
+// gray, info icon). Same split as the insurance analyzer's flag list.
 const URGENT_SEVERITIES: RiskSeverity[] = ['critical', 'high']
 const SEVERITY_RANK: Record<RiskSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 
@@ -45,7 +45,7 @@ function SeverityBadge({ severity }: { severity: RiskSeverity }) {
       className={
         urgent
           ? 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-400'
-          : 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-400'
+          : 'inline-flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'
       }
     >
       {urgent ? (

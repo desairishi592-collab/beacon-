@@ -34,7 +34,7 @@ export default async function CheckInPage() {
         </p>
       </div>
 
-      <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-400">
+      <p className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
         Beacon doesn&apos;t have an automated integration for your field yet. This manual check-in
         is a lightweight interim substitute — answer it periodically (e.g. weekly) so there&apos;s
         still a signal to look at until we build a real integration.

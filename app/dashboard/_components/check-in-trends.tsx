@@ -16,23 +16,25 @@ import {
 
 const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r.label]))
 
-// Same red/amber/green bands as SeverityBadge in check-in-history.tsx, reused
-// here for chart points, the legend, and summary cards so this view reads
-// consistently with the history list beneath it.
+// Same red-shade/neutral bands as SeverityBadge in check-in-history.tsx,
+// reused here for chart points, the legend, and summary cards so this view
+// reads consistently with the history list beneath it. Severity intensity is
+// carried by red saturation (severe = strong red, moderate = light red);
+// "low concern" drops out of red entirely into neutral gray.
 const BAND_FILL: Record<SeverityBand, string> = {
   severe: 'fill-red-600 dark:fill-red-400',
-  moderate: 'fill-amber-600 dark:fill-amber-400',
-  low: 'fill-green-600 dark:fill-green-400',
+  moderate: 'fill-red-300 dark:fill-red-700',
+  low: 'fill-neutral-400 dark:fill-neutral-600',
 }
 const BAND_DOT: Record<SeverityBand, string> = {
   severe: 'bg-red-600 dark:bg-red-400',
-  moderate: 'bg-amber-600 dark:bg-amber-400',
-  low: 'bg-green-600 dark:bg-green-400',
+  moderate: 'bg-red-300 dark:bg-red-700',
+  low: 'bg-neutral-400 dark:bg-neutral-600',
 }
 const BAND_TEXT: Record<SeverityBand, string> = {
   severe: 'text-red-600 dark:text-red-400',
-  moderate: 'text-amber-600 dark:text-amber-400',
-  low: 'text-green-600 dark:text-green-400',
+  moderate: 'text-red-600 dark:text-red-300',
+  low: 'text-neutral-500 dark:text-neutral-400',
 }
 const BAND_LABEL: Record<SeverityBand, string> = {
   severe: 'Severe',
@@ -171,7 +173,7 @@ function SeverityTrendChart({ checkins }: { checkins: ManualCheckin[] }) {
               onFocus={() => setActiveIndex(i)}
               onMouseLeave={() => setActiveIndex(null)}
               onBlur={() => setActiveIndex(null)}
-              className="cursor-pointer outline-none"
+              className="cursor-pointer outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-neutral-900 dark:focus-visible:outline-white"
             />
           )
         })}
@@ -215,7 +217,7 @@ function TrendIndicator({ delta }: { delta: number | null }) {
   return (
     <p
       className={`mt-1 text-xl font-semibold tracking-tight ${
-        improving ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+        improving ? 'text-neutral-700 dark:text-neutral-300' : 'text-red-600 dark:text-red-400'
       }`}
     >
       {improving ? 'Improving' : 'Worsening'}
@@ -235,7 +237,7 @@ const PERIOD_TREND_ARROW: Record<PeriodComparison['trend'], string> = {
 }
 const PERIOD_TREND_TEXT: Record<PeriodComparison['trend'], string> = {
   up: 'text-red-600 dark:text-red-400',
-  down: 'text-green-600 dark:text-green-400',
+  down: 'text-neutral-700 dark:text-neutral-300',
   flat: 'text-neutral-500 dark:text-neutral-400',
 }
 
