@@ -23,6 +23,18 @@ export default async function IntegrationsPage({
     .eq('profile_id', session.userId)
     .maybeSingle()
 
+  // Sync run history is service-role-only (see quickbooks_sync_runs' RLS
+  // note) purely to match the pattern used for the connection row above —
+  // there's nothing sensitive in these columns.
+  const { data: syncRuns } = connection
+    ? await db
+        .from('quickbooks_sync_runs')
+        .select('id, trigger, status, snapshots_synced, error_message, finished_at')
+        .eq('profile_id', session.userId)
+        .order('finished_at', { ascending: false })
+        .limit(5)
+    : { data: null }
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,6 +87,43 @@ export default async function IntegrationsPage({
             </a>
           )}
         </div>
+
+        {syncRuns && syncRuns.length > 0 && (
+          <div className="mt-6 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+            <h3 className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              Recent sync activity
+            </h3>
+            <ul className="mt-2 space-y-2">
+              {syncRuns.map((run) => (
+                <li key={run.id} className="flex items-start justify-between gap-4 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={
+                        run.status === 'success'
+                          ? 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-green-500'
+                          : 'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500'
+                      }
+                    />
+                    <div>
+                      <p className="text-neutral-700 dark:text-neutral-300">
+                        {run.trigger === 'cron' ? 'Scheduled sync' : 'Manual sync'}
+                        {run.status === 'success'
+                          ? ` · synced ${run.snapshots_synced} ${run.snapshots_synced === 1 ? 'period' : 'periods'}`
+                          : ' · failed'}
+                      </p>
+                      {run.error_message && (
+                        <p className="mt-0.5 text-red-600 dark:text-red-400">{run.error_message}</p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="shrink-0 whitespace-nowrap text-neutral-400 dark:text-neutral-600">
+                    {new Date(run.finished_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   )

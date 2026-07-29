@@ -58,6 +58,21 @@ export type QuickbooksConnection = {
   updated_at: string
 }
 
+export type QuickbooksSyncTrigger = 'manual' | 'cron'
+
+export type QuickbooksSyncStatus = 'success' | 'error'
+
+export type QuickbooksSyncRun = {
+  id: string
+  profile_id: string
+  trigger: QuickbooksSyncTrigger
+  status: QuickbooksSyncStatus
+  snapshots_synced: number
+  error_message: string | null
+  started_at: string
+  finished_at: string
+}
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '13'
@@ -152,6 +167,26 @@ export type Database = {
           access_token_expires_at: string
           refresh_token_expires_at: string
           last_synced_at: string | null
+        }>
+        Relationships: []
+      }
+      quickbooks_sync_runs: {
+        Row: QuickbooksSyncRun
+        Insert: {
+          id?: string
+          profile_id: string
+          trigger: QuickbooksSyncTrigger
+          status: QuickbooksSyncStatus
+          snapshots_synced?: number
+          error_message?: string | null
+          started_at: string
+          finished_at?: string
+        }
+        Update: Partial<{
+          status: QuickbooksSyncStatus
+          snapshots_synced: number
+          error_message: string | null
+          finished_at: string
         }>
         Relationships: []
       }
