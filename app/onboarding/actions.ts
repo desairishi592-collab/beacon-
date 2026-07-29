@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentSession } from '@/lib/current-user'
 import type { Field } from '@/lib/supabase/types'
 
 export type OnboardingState = { error: string } | undefined
@@ -24,17 +24,14 @@ export async function completeOnboarding(
     return { error: 'Team size must be a whole number of at least 1.' }
   }
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  const session = await getCurrentSession()
+  if (!session) {
     redirect('/login')
   }
+  const { userId, db } = session
 
-  const { error } = await supabase.from('profiles').upsert({
-    id: user.id,
+  const { error } = await db.from('profiles').upsert({
+    id: userId,
     name,
     role,
     field: field as Field,

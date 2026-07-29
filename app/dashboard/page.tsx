@@ -1,13 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentSession } from '@/lib/current-user'
 
 export default async function DashboardHomePage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const session = await getCurrentSession()
 
-  const { data: profile } = user
-    ? await supabase.from('profiles').select('name, field').eq('id', user.id).maybeSingle()
+  const { data: profile } = session
+    ? await session.db.from('profiles').select('name, field').eq('id', session.userId).maybeSingle()
     : { data: null }
 
   return (

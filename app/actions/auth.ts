@@ -1,17 +1,10 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getRequestOrigin } from '@/lib/request-origin'
 
 export type AuthState = { error: string } | undefined
-
-async function getOrigin() {
-  const headerList = await headers()
-  const host = headerList.get('x-forwarded-host') ?? headerList.get('host')
-  const protocol = headerList.get('x-forwarded-proto') ?? 'http'
-  return `${protocol}://${host}`
-}
 
 export async function signUpWithPassword(
   _prevState: AuthState,
@@ -60,7 +53,7 @@ export async function signInWithPassword(
 
 export async function signInWithOAuth(provider: 'google' | 'github') {
   const supabase = await createClient()
-  const origin = await getOrigin()
+  const origin = await getRequestOrigin()
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
