@@ -1,11 +1,9 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { escapeHtml } from './html'
-import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
+import { URGENT_SEVERITIES, resolveChannel } from './channels'
+import type { RiskFlag, RiskSeverity, RiskSignalType } from '@/lib/supabase/types'
 
-// Two-tier split, same as app/dashboard/risk-flags/page.tsx: critical/high are
-// "urgent" enough to page someone by email, medium/low stay dashboard-only.
-const URGENT_SEVERITIES: RiskSeverity[] = ['critical', 'high']
 const SEVERITY_RANK: Record<RiskSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 
 function severityColor(severity: RiskSeverity): string {
@@ -63,9 +61,9 @@ async function sendEmail(
 // Best-effort notification layered on top of the risk_flags rows that
 // analyzeSnapshot already persisted — those are the source of truth, so a
 // failure here is logged, not thrown. Only fires when at least one of the
-// newly inserted flags is critical/high, and sends one email summarizing all
-// of them (not one per flag), regardless of how many flags were created in
-// this analysis run.
+// newly inserted flags is both urgent and not opted out of email via
+// notification_preferences (see lib/notifications/channels.ts), and sends
+// one email summarizing all such flags (not one per flag).
 export async function notifyNewRiskFlags(flags: RiskFlag[], origin: string): Promise<void> {
   if (flags.length === 0) return
   if (!flags.some((flag) => URGENT_SEVERITIES.includes(flag.severity))) return
@@ -78,11 +76,26 @@ export async function notifyNewRiskFlags(flags: RiskFlag[], origin: string): Pro
 
   try {
     const db = createAdminClient()
+
+    const { data: preferences } = await db
+      .from('notification_preferences')
+      .select('signal_type, email_enabled')
+      .eq('profile_id', profileId)
+
+    const emailDisabledTypes = new Set<RiskSignalType>(
+      (preferences ?? []).filter((pref) => !pref.email_enabled).map((pref) => pref.signal_type),
+    )
+
+    const emailableFlags = flags.filter(
+      (flag) => resolveChannel(flag.severity, flag.signal_type, emailDisabledTypes) === 'email_and_in_app',
+    )
+    if (emailableFlags.length === 0) return
+
     const { data, error } = await db.auth.admin.getUserById(profileId)
     if (error || !data.user?.email) return
 
     const dashboardUrl = new URL('/dashboard/risk-flags', origin).toString()
-    await sendEmail(sendgridKey, fromEmail, data.user.email, flags, dashboardUrl)
+    await sendEmail(sendgridKey, fromEmail, data.user.email, emailableFlags, dashboardUrl)
   } catch (error) {
     console.error(`Risk flag notification email failed for profile ${profileId}:`, error)
   }

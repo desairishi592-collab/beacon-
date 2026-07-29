@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
 import { getCurrentSession } from '@/lib/current-user'
+import { getUnreadAlertCount } from '@/lib/alerts/unread-count'
 import { DashboardNav } from './nav'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .select('name, field')
     .eq('id', userId)
     .maybeSingle()
+
+  // Alerts (and the risk_flags they're built from) only exist for the
+  // finance field's QuickBooks integration — skip the extra queries for
+  // fields that never see the Alerts nav link.
+  const unreadAlertCount = profile?.field === 'finance' ? await getUnreadAlertCount(session) : 0
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -38,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
-        <DashboardNav field={profile?.field} />
+        <DashboardNav field={profile?.field} unreadAlertCount={unreadAlertCount} />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>

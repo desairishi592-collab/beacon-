@@ -1,15 +1,34 @@
 'use client'
 
+import { useState } from 'react'
 import { useActionState } from 'react'
-import type { AlertState, RiskFlag, RiskSeverity } from '@/lib/supabase/types'
+import type { AlertState, RiskFlag, RiskSeverity, RiskSignalType } from '@/lib/supabase/types'
+import { SIGNAL_TYPE_LABELS, URGENT_SEVERITIES, resolveChannel } from '@/lib/notifications/channels'
 import { dismissAlert, markAlertRead, type AlertActionState } from './actions'
-
-const URGENT_SEVERITIES: RiskSeverity[] = ['critical', 'high']
 
 export type AlertItem = {
   flag: RiskFlag
   state: AlertState | null
 }
+
+type SeverityFilter = 'all' | RiskSeverity
+type TypeFilter = 'all' | RiskSignalType
+
+const SEVERITY_OPTIONS: { value: SeverityFilter; label: string }[] = [
+  { value: 'all', label: 'All severities' },
+  { value: 'critical', label: 'Critical' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+]
+
+const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'All types' },
+  ...(Object.entries(SIGNAL_TYPE_LABELS) as [RiskSignalType, string][]).map(([value, label]) => ({
+    value,
+    label,
+  })),
+]
 
 export function EmptyState({ title, description }: { title: string; description: string }) {
   return (
@@ -48,24 +67,41 @@ function SeverityBadge({ severity }: { severity: RiskSeverity }) {
   )
 }
 
+function ChannelBadge({ emailed }: { emailed: boolean }) {
+  return (
+    <span
+      className={
+        emailed
+          ? 'inline-flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300'
+          : 'inline-flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400'
+      }
+    >
+      {emailed ? 'Email + in-app' : 'In-app only'}
+    </span>
+  )
+}
+
 const initialActionState: AlertActionState = undefined
 
-function AlertCard({ flag, state }: AlertItem) {
+function AlertCard({ flag, state, emailed }: AlertItem & { emailed: boolean }) {
   const isRead = Boolean(state?.read_at)
+  const isDismissed = Boolean(state?.dismissed_at)
   const [readState, readAction, readPending] = useActionState(markAlertRead, initialActionState)
   const [dismissState, dismissAction, dismissPending] = useActionState(dismissAlert, initialActionState)
 
   return (
     <div
       className={
-        isRead
-          ? 'rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900'
-          : 'rounded-lg border border-neutral-300 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900'
+        isDismissed
+          ? 'rounded-lg border border-neutral-200 bg-neutral-50/60 p-6 opacity-60 dark:border-neutral-800 dark:bg-neutral-900/40'
+          : isRead
+            ? 'rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900'
+            : 'rounded-lg border border-neutral-300 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900'
       }
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2">
-          {!isRead && (
+          {!isRead && !isDismissed && (
             <span
               aria-label="Unread"
               className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600 dark:bg-blue-400"
@@ -73,38 +109,53 @@ function AlertCard({ flag, state }: AlertItem) {
           )}
           <h3 className="font-medium">{flag.title}</h3>
         </div>
-        <SeverityBadge severity={flag.severity} />
+        <div className="flex shrink-0 items-center gap-2">
+          <ChannelBadge emailed={emailed} />
+          <SeverityBadge severity={flag.severity} />
+        </div>
       </div>
+      <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+        {SIGNAL_TYPE_LABELS[flag.signal_type]} ·{' '}
+        {new Date(flag.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      </p>
       <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{flag.explanation}</p>
       <div className="mt-4 rounded-md bg-neutral-50 px-4 py-3 dark:bg-neutral-800/50">
         <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">Recommendation</p>
         <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">{flag.recommendation}</p>
       </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2">
-        {!isRead && (
-          <form action={readAction}>
+      {isDismissed ? (
+        <p className="mt-4 text-right text-sm text-neutral-400 dark:text-neutral-600">Dismissed</p>
+      ) : (
+        <div className="mt-4 flex items-center justify-end gap-2">
+          {!isRead && (
+            <form action={readAction}>
+              <input type="hidden" name="riskFlagId" value={flag.id} />
+              <button
+                type="submit"
+                disabled={readPending}
+                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              >
+                {readPending ? 'Marking…' : 'Mark as read'}
+              </button>
+            </form>
+          )}
+          <form action={dismissAction}>
             <input type="hidden" name="riskFlagId" value={flag.id} />
             <button
               type="submit"
-              disabled={readPending}
+              disabled={dismissPending}
               className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
-              {readPending ? 'Marking…' : 'Mark as read'}
+              {dismissPending ? 'Dismissing…' : 'Dismiss'}
             </button>
           </form>
-        )}
-        <form action={dismissAction}>
-          <input type="hidden" name="riskFlagId" value={flag.id} />
-          <button
-            type="submit"
-            disabled={dismissPending}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-          >
-            {dismissPending ? 'Dismissing…' : 'Dismiss'}
-          </button>
-        </form>
-      </div>
+        </div>
+      )}
 
       {readState && 'error' in readState && (
         <p className="mt-2 text-right text-sm text-red-600 dark:text-red-400">{readState.error}</p>
@@ -116,21 +167,85 @@ function AlertCard({ flag, state }: AlertItem) {
   )
 }
 
-export function AlertsList({ alerts }: { alerts: AlertItem[] }) {
+export function AlertsList({
+  alerts,
+  emailDisabledTypes,
+}: {
+  alerts: AlertItem[]
+  emailDisabledTypes: RiskSignalType[]
+}) {
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const disabledTypes = new Set(emailDisabledTypes)
+
   if (alerts.length === 0) {
     return (
       <EmptyState
         title="You're all caught up."
-        description="No active alerts right now. Beacon will flag new signals here as your synced financials change."
+        description="No alerts yet. Beacon will list new signals here as your synced financials change."
       />
     )
   }
 
+  const filteredAlerts = alerts.filter(
+    ({ flag }) =>
+      (severityFilter === 'all' || flag.severity === severityFilter) &&
+      (typeFilter === 'all' || flag.signal_type === typeFilter),
+  )
+
   return (
-    <div className="space-y-4">
-      {alerts.map(({ flag, state }) => (
-        <AlertCard key={flag.id} flag={flag} state={state} />
-      ))}
+    <div>
+      <div className="flex items-center justify-end gap-2">
+        <label htmlFor="type-filter" className="sr-only">
+          Filter by type
+        </label>
+        <select
+          id="type-filter"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+          className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          {TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        <label htmlFor="severity-filter" className="sr-only">
+          Filter by severity
+        </label>
+        <select
+          id="severity-filter"
+          value={severityFilter}
+          onChange={(e) => setSeverityFilter(e.target.value as SeverityFilter)}
+          className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          {SEVERITY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {filteredAlerts.length === 0 ? (
+        <EmptyState
+          title="No alerts match this filter."
+          description="Try a different type or severity, or clear the filters to see all alerts."
+        />
+      ) : (
+        <div className="mt-4 space-y-4">
+          {filteredAlerts.map(({ flag, state }) => (
+            <AlertCard
+              key={flag.id}
+              flag={flag}
+              state={state}
+              emailed={resolveChannel(flag.severity, flag.signal_type, disabledTypes) === 'email_and_in_app'}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

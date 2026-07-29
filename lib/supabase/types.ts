@@ -65,6 +65,15 @@ export type AlertState = {
   created_at: string
 }
 
+export type NotificationPreference = {
+  id: string
+  profile_id: string
+  signal_type: RiskSignalType
+  email_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
 export type ManualCheckin = {
   id: string
   profile_id: string
@@ -261,6 +270,19 @@ export type Database = {
         }
         Update: Partial<{
           status: TeamInviteStatus
+        }>
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: NotificationPreference
+        Insert: {
+          id?: string
+          profile_id: string
+          signal_type: RiskSignalType
+          email_enabled?: boolean
+        }
+        Update: Partial<{
+          email_enabled: boolean
         }>
         Relationships: []
       }

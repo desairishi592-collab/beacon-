@@ -4,9 +4,11 @@ import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
 vi.mock('server-only', () => ({}))
 
 const getUserById = vi.fn()
+const preferencesSelect = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: vi.fn(() => ({
     auth: { admin: { getUserById } },
+    from: vi.fn(() => ({ select: vi.fn(() => ({ eq: preferencesSelect })) })),
   })),
 }))
 
@@ -40,6 +42,8 @@ describe('notifyNewRiskFlags', () => {
     process.env.SENDGRID_FROM_EMAIL = 'alerts@beacon.test'
     getUserById.mockReset()
     getUserById.mockResolvedValue({ data: { user: { email: 'founder@example.com' } }, error: null })
+    preferencesSelect.mockReset()
+    preferencesSelect.mockResolvedValue({ data: [], error: null })
     fetchMock = vi.fn().mockResolvedValue({ ok: true, text: async () => '' })
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -79,6 +83,36 @@ describe('notifyNewRiskFlags', () => {
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(getUserById).not.toHaveBeenCalled()
+  })
+
+  it('does not send an email when the only urgent flag type has email disabled', async () => {
+    preferencesSelect.mockResolvedValue({
+      data: [{ signal_type: 'cash_runway', email_enabled: false }],
+      error: null,
+    })
+    const flags = [makeFlag({ severity: 'critical', signal_type: 'cash_runway' })]
+
+    await notifyNewRiskFlags(flags, 'https://app.beacon.test')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(getUserById).not.toHaveBeenCalled()
+  })
+
+  it('emails only the urgent flags whose type still has email enabled', async () => {
+    preferencesSelect.mockResolvedValue({
+      data: [{ signal_type: 'cash_runway', email_enabled: false }],
+      error: null,
+    })
+    const flags = [
+      makeFlag({ id: 'flag-cash', severity: 'critical', signal_type: 'cash_runway' }),
+      makeFlag({ id: 'flag-burn', severity: 'high', signal_type: 'burn_rate' }),
+    ]
+
+    await notifyNewRiskFlags(flags, 'https://app.beacon.test')
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.subject).toContain('1 urgent risk flag')
   })
 
   it('does nothing when there are no flags', async () => {
