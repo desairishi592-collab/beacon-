@@ -26,6 +26,10 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
   const canContinue =
     step === 0 ? name.trim().length > 0 : step === 1 ? role.trim().length > 0 : field.length > 0
 
+  const teamSizeNum = Number(teamSize)
+  const isTeamSizeValid =
+    teamSize.trim().length > 0 && Number.isInteger(teamSizeNum) && teamSizeNum >= 1
+
   function goNext(e: FormEvent) {
     e.preventDefault()
     if (!canContinue) return
@@ -38,10 +42,18 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="mb-6 flex gap-1.5">
+      <div
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={step + 1}
+        aria-valuetext={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}
+        className="mb-6 flex gap-1.5"
+      >
         {STEPS.map((label, i) => (
           <div
             key={label}
+            aria-hidden="true"
             className={`h-1.5 flex-1 rounded-full ${
               i <= step ? 'bg-neutral-900 dark:bg-white' : 'bg-neutral-200 dark:bg-neutral-800'
             }`}
@@ -88,7 +100,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
           {step === 2 && (
             <div className="space-y-1">
               <label htmlFor="field" className="text-sm font-medium">
-                Field
+                Which field are you in?
               </label>
               <select
                 id="field"
@@ -168,7 +180,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
             </button>
             <button
               type="submit"
-              disabled={pending || teamSize.trim().length === 0}
+              disabled={pending || !isTeamSizeValid}
               className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
             >
               {pending ? 'Saving…' : 'Finish'}
