@@ -4,7 +4,7 @@ import { MODERATE_RATING_THRESHOLD, overallSeverity, SEVERE_RATING_THRESHOLD } f
 
 const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r.label]))
 
-function SeverityBadge({ rating }: { rating: number }) {
+export function SeverityBadge({ rating }: { rating: number }) {
   const className =
     rating >= SEVERE_RATING_THRESHOLD
       ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'

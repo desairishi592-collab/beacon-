@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { ManualCheckin } from '@/lib/supabase/types'
 import type { CheckInQuestion } from '@/lib/check-ins/questions'
 import { RATING_SCALE } from '@/lib/check-ins/questions'
@@ -264,18 +265,26 @@ function RecurringRiskAreas({ areas, totalCheckins }: { areas: RecurringRiskArea
       <ul className="mt-4 space-y-3">
         {areas.slice(0, 5).map((area) => (
           <li key={area.questionId}>
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-neutral-700 dark:text-neutral-300">{area.prompt}</span>
-              <span className="shrink-0 font-medium text-neutral-900 dark:text-neutral-100">
-                {area.flaggedCount}/{area.totalCount}
-              </span>
-            </div>
-            <div className="mt-1.5 h-1.5 w-full rounded-full bg-neutral-100 dark:bg-neutral-800">
-              <div
-                className="h-1.5 rounded-full bg-neutral-900 dark:bg-white"
-                style={{ width: `${(area.flaggedCount / maxFlagged) * 100}%` }}
-              />
-            </div>
+            <Link
+              href={`/dashboard/check-in/history/${area.questionId}`}
+              className="block rounded-md -m-2 p-2 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+            >
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-neutral-700 dark:text-neutral-300">{area.prompt}</span>
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
+                  title={`Flagged in ${area.flaggedCount} of ${area.totalCount} check-ins`}
+                >
+                  {area.flaggedCount}&times; flagged
+                </span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full rounded-full bg-neutral-100 dark:bg-neutral-800">
+                <div
+                  className="h-1.5 rounded-full bg-neutral-900 dark:bg-white"
+                  style={{ width: `${(area.flaggedCount / maxFlagged) * 100}%` }}
+                />
+              </div>
+            </Link>
           </li>
         ))}
       </ul>
