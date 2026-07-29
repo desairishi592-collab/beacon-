@@ -1,6 +1,5 @@
 import 'server-only'
-import { betaJSONSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/beta/json-schema'
-import { getAnthropicClient } from '@/lib/anthropic/client'
+import { groqJsonCompletion } from '@/lib/groq/client'
 import type { FinancialSnapshot } from '@/lib/supabase/types'
 import type { ExplainedRiskSignal, RiskSignal } from './types'
 
@@ -36,6 +35,9 @@ For each flagged signal, write:
 Write for someone scanning a dashboard under time pressure. Be direct and specific to this
 business's numbers — do not write generic advice that could apply to any flagged signal of that
 type. Do not hedge with disclaimers about needing more information; work with what you're given.
+
+Respond with a JSON object matching the given schema — one entry per flagged signal, matched
+back by metric_label.
 `.trim()
 
 const OUTPUT_SCHEMA = {
@@ -60,6 +62,10 @@ const OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const
 
+type ExplainOutput = {
+  flags: { metric_label: string; title: string; explanation: string; recommendation: string }[]
+}
+
 function buildUserMessage(snapshot: FinancialSnapshot, signals: RiskSignal[]): string {
   const payload = {
     period_start: snapshot.period_start,
@@ -76,7 +82,7 @@ function buildUserMessage(snapshot: FinancialSnapshot, signals: RiskSignal[]): s
   return `Flagged risk signals for this period:\n\n${JSON.stringify(payload, null, 2)}`
 }
 
-// Calls Claude to translate already-flagged, already-computed risk signals
+// Calls Groq to translate already-flagged, already-computed risk signals
 // into plain-language explanations. Returns one explanation per input
 // signal, matched back by metric_label.
 export async function explainRiskSignals(
@@ -85,23 +91,14 @@ export async function explainRiskSignals(
 ): Promise<ExplainedRiskSignal[]> {
   if (signals.length === 0) return []
 
-  const client = getAnthropicClient()
-  const response = await client.beta.messages.parse({
-    model: 'claude-opus-5',
-    max_tokens: 4096,
-    output_format: betaJSONSchemaOutputFormat(OUTPUT_SCHEMA),
+  const parsed = await groqJsonCompletion<ExplainOutput>({
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: buildUserMessage(snapshot, signals) }],
+    user: buildUserMessage(snapshot, signals),
+    schemaName: 'risk_flag_explanations',
+    schema: OUTPUT_SCHEMA,
   })
 
-  if (response.stop_reason === 'refusal') {
-    throw new Error('Risk flag explanation request was declined by the model safety classifiers.')
-  }
-  if (!response.parsed_output) {
-    throw new Error('Risk flag explanation response could not be parsed.')
-  }
-
-  const explanationsByLabel = new Map(response.parsed_output.flags.map((flag) => [flag.metric_label, flag]))
+  const explanationsByLabel = new Map(parsed.flags.map((flag) => [flag.metric_label, flag]))
 
   return signals.map((signal) => {
     const explained = explanationsByLabel.get(signal.metricLabel)

@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { analyzeSnapshot } from '@/lib/risk-engine/analyze'
+import { notifyNewRiskFlags } from '@/lib/notifications/risk-flag-email'
+import { getRequestOrigin } from '@/lib/request-origin'
 
 // Triggers the risk analysis engine for one financial_snapshots row.
 // Intended to be called server-to-server — by the QuickBooks ingestion job
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const flags = await analyzeSnapshot(snapshotId)
+    await notifyNewRiskFlags(flags, await getRequestOrigin())
     return NextResponse.json({ flags })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Risk analysis failed'
