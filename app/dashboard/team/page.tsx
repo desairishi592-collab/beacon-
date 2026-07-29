@@ -70,7 +70,7 @@ export default async function TeamPage() {
             const checkins = checkinsByMember.get(member.id) ?? []
             return (
               <div key={member.id}>
-                <div className="flex items-baseline justify-between">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h2 className="text-sm font-medium">{member.name}</h2>
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">{member.role}</span>
                 </div>

@@ -372,18 +372,18 @@ export function FinancialTrends({ snapshots }: { snapshots: FinancialSnapshot[] 
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="font-medium">Revenue, expenses & operating income</h2>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               Last {snapshots.length} synced months
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <ul className="flex gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <ul className="flex flex-wrap gap-x-3 gap-y-1 sm:gap-4">
               {SERIES.map((series) => (
                 <li key={series.key} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  <span className="inline-block h-0.5 w-3" style={{ backgroundColor: series.color }} />
+                  <span className="inline-block h-0.5 w-3 shrink-0" style={{ backgroundColor: series.color }} />
                   {series.label}
                 </li>
               ))}
@@ -391,7 +391,7 @@ export function FinancialTrends({ snapshots }: { snapshots: FinancialSnapshot[] 
             <button
               type="button"
               onClick={() => downloadFinancialReport(snapshots)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800"
+              className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800"
             >
               Download report
             </button>

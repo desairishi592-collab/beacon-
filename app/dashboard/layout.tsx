@@ -25,13 +25,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
       <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-semibold tracking-tight">Beacon</span>
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+          <span className="shrink-0 text-lg font-semibold tracking-tight">Beacon</span>
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             {profile?.name && (
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">{profile.name}</span>
+              <span className="min-w-0 truncate text-sm text-neutral-500 dark:text-neutral-400">
+                {profile.name}
+              </span>
             )}
-            <form action={signOut}>
+            <form action={signOut} className="shrink-0">
               <button
                 type="submit"
                 className="text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
@@ -43,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 md:flex-row md:gap-8">
         <DashboardNav
           field={profile?.field}
           unreadAlertCount={unreadAlertCount}

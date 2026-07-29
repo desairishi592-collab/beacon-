@@ -56,15 +56,15 @@ export function DashboardNav({
         ]
 
   return (
-    <nav className="w-48 shrink-0 space-y-1">
+    <nav className="-mx-4 flex shrink-0 gap-1 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 md:mx-0 md:w-48 md:flex-col md:space-y-1 md:overflow-visible md:px-0 md:pb-0">
       {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}
           className={
             pathname === link.href
-              ? 'flex items-center justify-between gap-2 rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900'
-              : 'flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
+              ? 'flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900'
+              : 'flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
           }
         >
           <span className="flex items-center gap-2">

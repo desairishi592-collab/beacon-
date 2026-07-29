@@ -141,10 +141,12 @@ export default async function OrganizationPage() {
             {pendingInvites.map((invite) => (
               <li
                 key={invite.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-dashed border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
+                className="flex flex-col gap-2 rounded-md border border-dashed border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 sm:flex-row sm:items-center sm:justify-between"
               >
-                <span className="text-neutral-600 dark:text-neutral-300">{invite.invitee_email}</span>
-                <div className="flex items-center gap-3">
+                <span className="min-w-0 truncate text-neutral-600 dark:text-neutral-300">
+                  {invite.invitee_email}
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium capitalize text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
                     {invite.role}
                   </span>

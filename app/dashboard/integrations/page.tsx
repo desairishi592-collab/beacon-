@@ -62,8 +62,8 @@ export default async function IntegrationsPage({
       )}
 
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="font-medium">QuickBooks</h2>
             {connection ? (
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
@@ -78,7 +78,7 @@ export default async function IntegrationsPage({
           </div>
 
           {connection ? (
-            <div className="flex items-start gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               <SyncButton />
               <DisconnectButton />
             </div>

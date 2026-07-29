@@ -417,14 +417,14 @@ export function CheckInTrends({
               Highest-rated question from each of your last {checkins.length} check-ins
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <ul className="flex gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <ul className="flex flex-wrap gap-x-3 gap-y-1 sm:gap-4">
               {BANDS.map((band) => (
                 <li
                   key={band}
                   className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400"
                 >
-                  <span className={`inline-block h-2 w-2 rounded-full ${BAND_DOT[band]}`} />
+                  <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${BAND_DOT[band]}`} />
                   {BAND_LABEL[band]}
                 </li>
               ))}
@@ -432,7 +432,7 @@ export function CheckInTrends({
             <button
               type="button"
               onClick={() => downloadCheckinReport(checkins, questions)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800"
+              className="shrink-0 rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800"
             >
               Export CSV
             </button>
