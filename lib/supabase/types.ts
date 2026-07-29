@@ -21,6 +21,7 @@ export type TeamInvite = {
   inviter_profile_id: string
   invitee_email: string
   status: TeamInviteStatus
+  role: TeamRole
   created_at: string
 }
 
@@ -129,6 +130,7 @@ export type Database = {
           field: Field
           team_size: number
           team_id?: string
+          team_role?: TeamRole
         }
         Update: Partial<{
           name: string
@@ -271,6 +273,7 @@ export type Database = {
           inviter_profile_id: string
           invitee_email: string
           status?: TeamInviteStatus
+          role?: TeamRole
         }
         Update: Partial<{
           status: TeamInviteStatus

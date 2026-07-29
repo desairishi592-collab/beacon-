@@ -32,7 +32,7 @@ export default async function OrganizationPage() {
       .order('name', { ascending: true }),
     db
       .from('team_invites')
-      .select('id, invitee_email, created_at')
+      .select('id, invitee_email, role, created_at')
       .eq('inviter_profile_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
@@ -105,13 +105,18 @@ export default async function OrganizationPage() {
                 className="flex items-center justify-between gap-3 rounded-md border border-dashed border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700"
               >
                 <span className="text-neutral-600 dark:text-neutral-300">{invite.invitee_email}</span>
-                <ConfirmActionButton
-                  action={revokeInvite}
-                  hiddenField={{ name: 'invite_id', value: invite.id }}
-                  label="Revoke"
-                  confirmLabel="Confirm revoke"
-                  pendingLabel="Revoking…"
-                />
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium capitalize text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+                    {invite.role}
+                  </span>
+                  <ConfirmActionButton
+                    action={revokeInvite}
+                    hiddenField={{ name: 'invite_id', value: invite.id }}
+                    label="Revoke"
+                    confirmLabel="Confirm revoke"
+                    pendingLabel="Revoking…"
+                  />
+                </div>
               </li>
             ))}
           </ul>

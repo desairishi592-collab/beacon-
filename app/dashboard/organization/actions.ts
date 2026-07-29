@@ -5,8 +5,10 @@ import { getCurrentSession } from '@/lib/current-user'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { sendTeamInviteEmail } from '@/lib/notifications/team-invite-email'
 import { removeTeamMember as removeTeamMemberRow, type TeamActionState } from '@/lib/team-invites'
+import type { TeamRole } from '@/lib/supabase/types'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const VALID_ROLES: TeamRole[] = ['admin', 'member']
 
 export type InviteState = { error: string } | { success: true; email: string } | undefined
 
@@ -15,8 +17,10 @@ export async function inviteTeamMember(
   formData: FormData
 ): Promise<InviteState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
+  const role = String(formData.get('role') ?? 'member').trim()
 
   if (!EMAIL_RE.test(email)) return { error: 'Enter a valid email address.' }
+  if (!VALID_ROLES.includes(role as TeamRole)) return { error: 'Select a valid role.' }
 
   const session = await getCurrentSession()
   if (!session) return { error: 'Not signed in.' }
@@ -34,7 +38,7 @@ export async function inviteTeamMember(
 
   const { data: invite, error } = await db
     .from('team_invites')
-    .insert({ inviter_profile_id: userId, invitee_email: email })
+    .insert({ inviter_profile_id: userId, invitee_email: email, role: role as TeamRole })
     .select('id')
     .single()
 

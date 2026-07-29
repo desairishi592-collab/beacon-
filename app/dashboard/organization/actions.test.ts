@@ -28,9 +28,10 @@ describe('inviteTeamMember', () => {
   let del: ReturnType<typeof vi.fn>
   let from: ReturnType<typeof vi.fn>
 
-  function makeInviteFormData(email: string) {
+  function makeInviteFormData(email: string, role?: string) {
     const formData = new FormData()
     formData.set('email', email)
+    if (role !== undefined) formData.set('role', role)
     return formData
   }
 
@@ -57,7 +58,7 @@ describe('inviteTeamMember', () => {
     revalidatePath.mockClear()
   })
 
-  it('creates a pending invite, emails it, and reports success', async () => {
+  it('creates a pending invite defaulting to the member role, emails it, and reports success', async () => {
     const formData = makeInviteFormData('NewHire@Example.com')
 
     const result = await inviteTeamMember(undefined, formData)
@@ -66,6 +67,7 @@ describe('inviteTeamMember', () => {
     expect(insert).toHaveBeenCalledWith({
       inviter_profile_id: 'user-1',
       invitee_email: 'newhire@example.com',
+      role: 'member',
     })
     expect(sendTeamInviteEmail).toHaveBeenCalledWith({
       inviteId: 'invite-1',
@@ -74,6 +76,28 @@ describe('inviteTeamMember', () => {
       origin: 'https://app.beacon.test',
     })
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard/organization')
+  })
+
+  it('creates a pending invite with the admin role when selected', async () => {
+    const formData = makeInviteFormData('newhire@example.com', 'admin')
+
+    const result = await inviteTeamMember(undefined, formData)
+
+    expect(result).toEqual({ success: true, email: 'newhire@example.com' })
+    expect(insert).toHaveBeenCalledWith({
+      inviter_profile_id: 'user-1',
+      invitee_email: 'newhire@example.com',
+      role: 'admin',
+    })
+  })
+
+  it('rejects an invalid role before hitting the DB', async () => {
+    const formData = makeInviteFormData('newhire@example.com', 'owner')
+
+    const result = await inviteTeamMember(undefined, formData)
+
+    expect(result).toEqual({ error: 'Select a valid role.' })
+    expect(insert).not.toHaveBeenCalled()
   })
 
   it('rejects an invalid email before hitting the DB', async () => {

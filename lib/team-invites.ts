@@ -1,22 +1,25 @@
 import 'server-only'
 import { randomUUID } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { TeamRole } from '@/lib/supabase/types'
+
+export type ResolvedInvite = { teamId: string; role: TeamRole }
 
 // Resolves a pending invite (by its id, emailed as a signup link param) into
-// the team_id a newly onboarding invitee should join, and marks the invite
-// accepted. Runs on the admin client because the invitee has no RLS
-// relationship to the inviter's invite row or profile until this resolves —
-// see 0010_team_invites.sql for why those tables have no policy that would
-// let the invitee read/update them directly.
-export async function resolveInviteTeamId(
+// the team_id/role a newly onboarding invitee should join with, and marks
+// the invite accepted. Runs on the admin client because the invitee has no
+// RLS relationship to the inviter's invite row or profile until this
+// resolves — see 0010_team_invites.sql for why those tables have no policy
+// that would let the invitee read/update them directly.
+export async function resolveInvite(
   inviteId: string,
   inviteeEmail: string
-): Promise<string | undefined> {
+): Promise<ResolvedInvite | undefined> {
   const db = createAdminClient()
 
   const { data: invite } = await db
     .from('team_invites')
-    .select('id, inviter_profile_id, invitee_email, status')
+    .select('id, inviter_profile_id, invitee_email, status, role')
     .eq('id', inviteId)
     .maybeSingle()
 
@@ -38,7 +41,7 @@ export async function resolveInviteTeamId(
 
   await db.from('team_invites').update({ status: 'accepted' }).eq('id', invite.id)
 
-  return inviterProfile.team_id
+  return { teamId: inviterProfile.team_id, role: invite.role }
 }
 
 export type TeamMembershipError = 'not_admin' | 'not_teammate' | 'not_found' | 'is_admin'

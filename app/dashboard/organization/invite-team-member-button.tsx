@@ -37,6 +37,21 @@ export function InviteTeamMemberButton() {
         />
       </div>
 
+      <div className="space-y-1">
+        <label htmlFor="invite-role" className="text-sm font-medium">
+          Role
+        </label>
+        <select
+          id="invite-role"
+          name="role"
+          defaultValue="member"
+          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
+        >
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
       {state && 'error' in state && (
         <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
       )}

@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
-import { resolveInviteTeamId } from '@/lib/team-invites'
+import { resolveInvite } from '@/lib/team-invites'
 import type { Field } from '@/lib/supabase/types'
 
 export type OnboardingState = { error: string } | undefined
@@ -34,14 +34,15 @@ export async function completeOnboarding(
 
   // A signup link from an invite email carries the invite id — if it still
   // resolves to a pending invite for this account's email, join the
-  // inviter's team instead of getting a fresh solo team_id.
-  let teamId: string | undefined
+  // inviter's team (with the role the admin assigned) instead of getting a
+  // fresh solo team_id/default admin role.
+  let resolved: Awaited<ReturnType<typeof resolveInvite>>
   if (inviteId) {
     const {
       data: { user },
     } = await db.auth.getUser()
     if (user?.email) {
-      teamId = await resolveInviteTeamId(inviteId, user.email)
+      resolved = await resolveInvite(inviteId, user.email)
     }
   }
 
@@ -51,7 +52,7 @@ export async function completeOnboarding(
     role,
     field: field as Field,
     team_size: teamSize,
-    ...(teamId ? { team_id: teamId } : {}),
+    ...(resolved ? { team_id: resolved.teamId, team_role: resolved.role } : {}),
   })
 
   if (error) {

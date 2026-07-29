@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { redirectMock, getCurrentSession, resolveInviteTeamId } = vi.hoisted(() => ({
+const { redirectMock, getCurrentSession, resolveInvite } = vi.hoisted(() => ({
   redirectMock: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`)
   }),
   getCurrentSession: vi.fn(),
-  resolveInviteTeamId: vi.fn(),
+  resolveInvite: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect: redirectMock }))
 vi.mock('@/lib/current-user', () => ({ getCurrentSession }))
-vi.mock('@/lib/team-invites', () => ({ resolveInviteTeamId }))
+vi.mock('@/lib/team-invites', () => ({ resolveInvite }))
 
 import { completeOnboarding } from './actions'
 
@@ -134,17 +134,17 @@ describe('completeOnboarding with an invite', () => {
     getUser = vi.fn().mockResolvedValue({ data: { user: { email: 'newhire@example.com' } } })
     getCurrentSession.mockReset()
     getCurrentSession.mockResolvedValue({ userId: 'user-1', db: { from, auth: { getUser } } })
-    resolveInviteTeamId.mockReset()
-    resolveInviteTeamId.mockResolvedValue('team-abc')
+    resolveInvite.mockReset()
+    resolveInvite.mockResolvedValue({ teamId: 'team-abc', role: 'member' })
     redirectMock.mockClear()
   })
 
-  it('resolves the invite and joins the inviter team_id', async () => {
+  it('resolves the invite and joins the inviter team_id with the assigned role', async () => {
     const formData = makeFormData(validFields({ invite: 'invite-1' }))
 
     await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
 
-    expect(resolveInviteTeamId).toHaveBeenCalledWith('invite-1', 'newhire@example.com')
+    expect(resolveInvite).toHaveBeenCalledWith('invite-1', 'newhire@example.com')
     expect(upsert).toHaveBeenCalledWith({
       id: 'user-1',
       name: 'Ada Lovelace',
@@ -152,11 +152,23 @@ describe('completeOnboarding with an invite', () => {
       field: 'engineering',
       team_size: 5,
       team_id: 'team-abc',
+      team_role: 'member',
     })
   })
 
-  it('completes onboarding without a team_id when the invite does not resolve', async () => {
-    resolveInviteTeamId.mockResolvedValue(undefined)
+  it('joins as an admin when the inviting admin assigned the admin role', async () => {
+    resolveInvite.mockResolvedValue({ teamId: 'team-abc', role: 'admin' })
+    const formData = makeFormData(validFields({ invite: 'invite-1' }))
+
+    await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ team_id: 'team-abc', team_role: 'admin' })
+    )
+  })
+
+  it('completes onboarding without a team_id or team_role when the invite does not resolve', async () => {
+    resolveInvite.mockResolvedValue(undefined)
     const formData = makeFormData(validFields({ invite: 'stale-invite' }))
 
     await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
@@ -175,7 +187,7 @@ describe('completeOnboarding with an invite', () => {
 
     await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
 
-    expect(resolveInviteTeamId).not.toHaveBeenCalled()
+    expect(resolveInvite).not.toHaveBeenCalled()
     expect(getUser).not.toHaveBeenCalled()
   })
 })

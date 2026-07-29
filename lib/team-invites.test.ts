@@ -8,9 +8,9 @@ const { createAdminClient } = vi.hoisted(() => ({
 
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
-import { resolveInviteTeamId, removeTeamMember, leaveTeam } from './team-invites'
+import { resolveInvite, removeTeamMember, leaveTeam } from './team-invites'
 
-describe('resolveInviteTeamId', () => {
+describe('resolveInvite', () => {
   let inviteMaybeSingle: ReturnType<typeof vi.fn>
   let profileMaybeSingle: ReturnType<typeof vi.fn>
   let updateEq: ReturnType<typeof vi.fn>
@@ -24,6 +24,7 @@ describe('resolveInviteTeamId', () => {
         inviter_profile_id: 'inviter-1',
         invitee_email: 'newhire@example.com',
         status: 'pending',
+        role: 'member',
       },
     })
     profileMaybeSingle = vi.fn().mockResolvedValue({ data: { team_id: 'team-abc' } })
@@ -46,26 +47,42 @@ describe('resolveInviteTeamId', () => {
     createAdminClient.mockReturnValue({ from })
   })
 
-  it('returns the inviter team_id and marks the invite accepted for a matching pending invite', async () => {
-    const teamId = await resolveInviteTeamId('invite-1', 'newhire@example.com')
+  it('returns the inviter team_id and role, and marks the invite accepted for a matching pending invite', async () => {
+    const resolved = await resolveInvite('invite-1', 'newhire@example.com')
 
-    expect(teamId).toBe('team-abc')
+    expect(resolved).toEqual({ teamId: 'team-abc', role: 'member' })
     expect(update).toHaveBeenCalledWith({ status: 'accepted' })
     expect(updateEq).toHaveBeenCalledWith('id', 'invite-1')
   })
 
   it('matches the invitee email case-insensitively', async () => {
-    const teamId = await resolveInviteTeamId('invite-1', 'NewHire@Example.com')
+    const resolved = await resolveInvite('invite-1', 'NewHire@Example.com')
 
-    expect(teamId).toBe('team-abc')
+    expect(resolved).toEqual({ teamId: 'team-abc', role: 'member' })
+  })
+
+  it('returns the invite role when the admin invited someone as an admin', async () => {
+    inviteMaybeSingle.mockResolvedValue({
+      data: {
+        id: 'invite-1',
+        inviter_profile_id: 'inviter-1',
+        invitee_email: 'newhire@example.com',
+        status: 'pending',
+        role: 'admin',
+      },
+    })
+
+    const resolved = await resolveInvite('invite-1', 'newhire@example.com')
+
+    expect(resolved).toEqual({ teamId: 'team-abc', role: 'admin' })
   })
 
   it('returns undefined and does not mutate the invite when the invite does not exist', async () => {
     inviteMaybeSingle.mockResolvedValue({ data: null })
 
-    const teamId = await resolveInviteTeamId('missing', 'newhire@example.com')
+    const resolved = await resolveInvite('missing', 'newhire@example.com')
 
-    expect(teamId).toBeUndefined()
+    expect(resolved).toBeUndefined()
     expect(update).not.toHaveBeenCalled()
   })
 
@@ -76,28 +93,29 @@ describe('resolveInviteTeamId', () => {
         inviter_profile_id: 'inviter-1',
         invitee_email: 'newhire@example.com',
         status: 'accepted',
+        role: 'member',
       },
     })
 
-    const teamId = await resolveInviteTeamId('invite-1', 'newhire@example.com')
+    const resolved = await resolveInvite('invite-1', 'newhire@example.com')
 
-    expect(teamId).toBeUndefined()
+    expect(resolved).toBeUndefined()
     expect(update).not.toHaveBeenCalled()
   })
 
   it('returns undefined when the signup email does not match the invited email', async () => {
-    const teamId = await resolveInviteTeamId('invite-1', 'someoneelse@example.com')
+    const resolved = await resolveInvite('invite-1', 'someoneelse@example.com')
 
-    expect(teamId).toBeUndefined()
+    expect(resolved).toBeUndefined()
     expect(update).not.toHaveBeenCalled()
   })
 
   it('returns undefined when the inviter profile no longer exists', async () => {
     profileMaybeSingle.mockResolvedValue({ data: null })
 
-    const teamId = await resolveInviteTeamId('invite-1', 'newhire@example.com')
+    const resolved = await resolveInvite('invite-1', 'newhire@example.com')
 
-    expect(teamId).toBeUndefined()
+    expect(resolved).toBeUndefined()
     expect(update).not.toHaveBeenCalled()
   })
 })
