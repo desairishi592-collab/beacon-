@@ -26,7 +26,7 @@ export default async function DashboardHomePage() {
 
       {showCheckInPath ? (
         <Suspense fallback={<CheckInHistorySkeleton />}>
-          <CheckInOverview session={session} hasProfile={!!profile} />
+          <CheckInOverview session={session} hasProfile={!!profile} field={profile?.field} />
         </Suspense>
       ) : (
         <Suspense fallback={<FinancialTrendsSkeleton />}>

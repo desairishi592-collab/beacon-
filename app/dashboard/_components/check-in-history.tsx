@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import type { ManualCheckin } from '@/lib/supabase/types'
 import { getCheckInQuestions, RATING_SCALE, type ManualCheckinField } from '@/lib/check-ins/questions'
 import { MODERATE_RATING_THRESHOLD, overallSeverity, SEVERE_RATING_THRESHOLD } from '@/lib/check-ins/severity'
@@ -68,21 +67,6 @@ export function CheckInHistory({ checkins }: { checkins: ManualCheckin[] }) {
       {checkins.map((checkin) => (
         <CheckInCard key={checkin.id} checkin={checkin} />
       ))}
-    </div>
-  )
-}
-
-// Shown above the dashboard home page's CheckInHistory, linking out to the
-// full history & trends view at /dashboard/check-in/history.
-export function CheckInHistoryLink() {
-  return (
-    <div className="mt-6 flex justify-end">
-      <Link
-        href="/dashboard/check-in/history"
-        className="text-sm font-medium text-neutral-600 hover:underline dark:text-neutral-300"
-      >
-        View full history &amp; trends →
-      </Link>
     </div>
   )
 }
