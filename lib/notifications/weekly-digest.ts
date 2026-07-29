@@ -78,6 +78,20 @@ async function sendDigestEmail(
   }
 }
 
+// Mirrors vercel.json's `0 14 * * 1` cron schedule for this route — Mondays
+// at 14:00 UTC. Pure display helper for the settings page; the actual
+// trigger lives in Vercel Cron, not here.
+export function getNextWeeklyDigestAt(now: Date = new Date()): Date {
+  const next = new Date(now)
+  next.setUTCHours(14, 0, 0, 0)
+  let daysUntilMonday = (1 - next.getUTCDay() + 7) % 7
+  if (daysUntilMonday === 0 && next.getTime() <= now.getTime()) {
+    daysUntilMonday = 7
+  }
+  next.setUTCDate(next.getUTCDate() + daysUntilMonday)
+  return next
+}
+
 export type WeeklyDigestResult = {
   profileId: string
   sent: boolean

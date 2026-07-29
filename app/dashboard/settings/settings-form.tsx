@@ -12,12 +12,14 @@ export function SettingsForm({
   role,
   teamSize,
   weeklyDigestEnabled,
+  nextDigestLabel,
   checkInReminderEnabled,
 }: {
   name: string
   role: string
   teamSize: number
   weeklyDigestEnabled: boolean
+  nextDigestLabel: string | null
   checkInReminderEnabled: boolean
 }) {
   const [state, formAction, pending] = useActionState(updateProfile, initialState)
@@ -84,6 +86,11 @@ export function SettingsForm({
             Get your status summary — overall status, open risk flags, and any urgent
             indicators — emailed to you once a week.
           </p>
+          {nextDigestLabel && (
+            <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+              Next digest: {nextDigestLabel}
+            </p>
+          )}
         </label>
       </div>
 

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
+import { getNextWeeklyDigestAt } from '@/lib/notifications/weekly-digest'
 import { SettingsForm } from './settings-form'
 import { ConfirmActionButton } from '../_components/confirm-action-button'
 import { leaveTeam } from './actions'
@@ -19,6 +20,15 @@ export default async function SettingsPage() {
 
   const isAdmin = profile.team_role === 'admin'
 
+  const nextDigestLabel = profile.weekly_digest_enabled
+    ? getNextWeeklyDigestAt().toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+      })
+    : null
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,6 +44,7 @@ export default async function SettingsPage() {
           role={profile.role}
           teamSize={profile.team_size}
           weeklyDigestEnabled={profile.weekly_digest_enabled}
+          nextDigestLabel={nextDigestLabel}
           checkInReminderEnabled={profile.check_in_reminder_enabled}
         />
       </div>

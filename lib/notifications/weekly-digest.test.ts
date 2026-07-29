@@ -14,7 +14,7 @@ vi.mock('@/lib/dashboard/summary', async () => {
   return { ...actual, getDashboardSummary }
 })
 
-import { sendWeeklyDigests } from './weekly-digest'
+import { getNextWeeklyDigestAt, sendWeeklyDigests } from './weekly-digest'
 
 function makeDb(profiles: { id: string; field: string }[] | null, profilesError: unknown = null) {
   const eq = vi.fn().mockResolvedValue({ data: profiles, error: profilesError })
@@ -30,6 +30,23 @@ const HEALTHY_SUMMARY = {
   lastActivityLabel: 'check-in' as const,
   urgentIndicator: null,
 }
+
+describe('getNextWeeklyDigestAt', () => {
+  it('returns 14:00 UTC the same day when called before that time on a Monday', () => {
+    const monday9am = new Date('2026-07-27T09:00:00.000Z')
+    expect(getNextWeeklyDigestAt(monday9am).toISOString()).toBe('2026-07-27T14:00:00.000Z')
+  })
+
+  it('rolls over to the following Monday when called after 14:00 UTC on a Monday', () => {
+    const mondayAfterNoon = new Date('2026-07-27T15:00:00.000Z')
+    expect(getNextWeeklyDigestAt(mondayAfterNoon).toISOString()).toBe('2026-08-03T14:00:00.000Z')
+  })
+
+  it('returns the coming Monday for any other day of the week', () => {
+    const wednesday = new Date('2026-07-29T10:00:00.000Z')
+    expect(getNextWeeklyDigestAt(wednesday).toISOString()).toBe('2026-08-03T14:00:00.000Z')
+  })
+})
 
 describe('sendWeeklyDigests', () => {
   const originalEnv = { ...process.env }
