@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { getCurrentSession } from '@/lib/current-user'
 import { getCheckInQuestions, isManualCheckinField, RATING_SCALE } from '@/lib/check-ins/questions'
+import { notifySevereCheckin } from '@/lib/notifications/check-in-email'
+import { getRequestOrigin } from '@/lib/request-origin'
 
 export type CheckInState = { error: string } | { success: true } | undefined
 
@@ -46,6 +48,11 @@ export async function submitCheckIn(
   if (error) {
     return { error: error.message }
   }
+
+  await notifySevereCheckin(
+    { profileId: userId, field: profile.field, responses, notes: notes || null },
+    await getRequestOrigin()
+  )
 
   revalidatePath('/dashboard/check-in')
   revalidatePath('/dashboard')

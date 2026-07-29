@@ -17,7 +17,7 @@ export const RATING_SCALE = [
 
 // Fields without a data integration yet (see AGENTS.md / lib/quickbooks —
 // finance is the only field wired up to an automated source so far).
-type ManualCheckinField = Exclude<Field, 'finance'>
+export type ManualCheckinField = Exclude<Field, 'finance'>
 
 const QUESTIONS_BY_FIELD: Record<ManualCheckinField, CheckInQuestion[]> = {
   medicine: [
