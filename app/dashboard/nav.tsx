@@ -15,11 +15,13 @@ export function DashboardNav({ field }: { field?: Field }) {
       ? [
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/check-in', label: 'Check-in' },
+          { href: '/dashboard/settings', label: 'Settings' },
         ]
       : [
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
+          { href: '/dashboard/settings', label: 'Settings' },
         ]
 
   return (
