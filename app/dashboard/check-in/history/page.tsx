@@ -4,6 +4,7 @@ import { getCurrentSession } from '@/lib/current-user'
 import { getCheckInQuestions, isManualCheckinField } from '@/lib/check-ins/questions'
 import { CheckInTrends } from '../../_components/check-in-trends'
 import { CheckInHistory } from '../../_components/check-in-history'
+import { DownloadCheckInReportButton } from '../../_components/download-check-in-report-button'
 
 function EmptyStateCard() {
   return (
@@ -60,6 +61,7 @@ export default async function CheckInHistoryPage() {
     .limit(200)
 
   const checkinsOldestFirst = checkins ?? []
+  const checkinsNewestFirst = [...checkinsOldestFirst].reverse()
 
   return (
     <div className="space-y-6">
@@ -82,10 +84,13 @@ export default async function CheckInHistoryPage() {
           )}
 
           <div>
-            <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
-              All submissions
-            </h2>
-            <CheckInHistory checkins={[...checkinsOldestFirst].reverse()} />
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
+                All submissions
+              </h2>
+              <DownloadCheckInReportButton checkins={checkinsNewestFirst} questions={questions} />
+            </div>
+            <CheckInHistory checkins={checkinsNewestFirst} />
           </div>
         </>
       )}
