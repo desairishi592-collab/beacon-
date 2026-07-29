@@ -311,9 +311,12 @@ function StatCard({
   )
 }
 
+// Assumes at least 2 snapshots — callers should show a "gathering data"
+// state instead of rendering this with fewer, since a single point can't
+// draw a trend line.
 export function FinancialTrends({ snapshots }: { snapshots: FinancialSnapshot[] }) {
   const latest = snapshots[snapshots.length - 1]
-  const prior = snapshots.length > 1 ? snapshots[snapshots.length - 2] : undefined
+  const prior = snapshots[snapshots.length - 2]
 
   return (
     <div className="mt-6 space-y-6">
@@ -350,30 +353,51 @@ export function FinancialTrends({ snapshots }: { snapshots: FinancialSnapshot[] 
           <div>
             <h2 className="font-medium">Revenue, expenses & operating income</h2>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              Last {snapshots.length} synced {snapshots.length === 1 ? 'month' : 'months'}
+              Last {snapshots.length} synced months
             </p>
           </div>
-          {snapshots.length > 1 && (
-            <ul className="flex gap-4">
-              {SERIES.map((series) => (
-                <li key={series.key} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                  <span className="inline-block h-0.5 w-3" style={{ backgroundColor: series.color }} />
-                  {series.label}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="flex gap-4">
+            {SERIES.map((series) => (
+              <li key={series.key} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                <span className="inline-block h-0.5 w-3" style={{ backgroundColor: series.color }} />
+                {series.label}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="mt-4">
-          {snapshots.length > 1 ? (
-            <TrendChart snapshots={snapshots} />
-          ) : (
-            <p className="py-8 text-center text-sm text-neutral-400 dark:text-neutral-600">
-              Once another month syncs, this will show a trend line.
-            </p>
-          )}
+          <TrendChart snapshots={snapshots} />
         </div>
+      </div>
+    </div>
+  )
+}
+
+function SkeletonBlock({ className }: { className: string }) {
+  return <div className={`rounded bg-neutral-200 dark:bg-neutral-800 ${className}`} />
+}
+
+export function FinancialTrendsSkeleton() {
+  return (
+    <div className="mt-6 animate-pulse space-y-6" aria-hidden="true">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <SkeletonBlock className="h-3 w-16" />
+            <SkeletonBlock className="mt-2 h-6 w-20" />
+            <SkeletonBlock className="mt-2 h-3 w-24" />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+        <SkeletonBlock className="h-4 w-64" />
+        <SkeletonBlock className="mt-2 h-3 w-40" />
+        <SkeletonBlock className="mt-6 h-[260px] w-full" />
       </div>
     </div>
   )
