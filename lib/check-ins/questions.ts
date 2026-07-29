@@ -27,7 +27,7 @@ const QUESTIONS_BY_FIELD: Record<ManualCheckinField, CheckInQuestion[]> = {
     { id: 'supply', prompt: 'Any shortages of critical supplies, medications, or equipment?' },
   ],
   engineering: [
-    { id: 'incidents', prompt: 'Any production incidents or outages this period?' },
+    { id: 'timeline_risk', prompt: 'Is any active project at risk of missing its deadline?' },
     { id: 'tech_debt', prompt: 'Are unresolved critical bugs or technical debt piling up?' },
     { id: 'team_capacity', prompt: 'Is the team at risk of burnout or unexpected turnover?' },
     { id: 'security', prompt: 'Any known security vulnerabilities left unpatched?' },
