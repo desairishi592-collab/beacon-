@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import { getCurrentSession } from '@/lib/current-user'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
 
 export default async function DashboardHomePage() {
   const session = await getCurrentSession()
@@ -6,6 +8,8 @@ export default async function DashboardHomePage() {
   const { data: profile } = session
     ? await session.db.from('profiles').select('name, field').eq('id', session.userId).maybeSingle()
     : { data: null }
+
+  const showCheckInPath = profile ? isManualCheckinField(profile.field) : false
 
   return (
     <div>
@@ -16,12 +20,35 @@ export default async function DashboardHomePage() {
         Here&apos;s your risk overview.
       </p>
 
-      <div className="mt-8 rounded-lg border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
-        <p className="text-neutral-500 dark:text-neutral-400">No integrations connected yet.</p>
-        <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-600">
-          Connect QuickBooks to start monitoring risk flags.
-        </p>
-      </div>
+      {showCheckInPath ? (
+        <div className="mt-8 rounded-lg border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
+          <p className="text-neutral-500 dark:text-neutral-400">
+            No automated integration for your field yet.
+          </p>
+          <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-600">
+            In the meantime, use the manual check-in to keep a lightweight risk signal flowing.
+          </p>
+          <Link
+            href="/dashboard/check-in"
+            className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            Go to check-in
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-8 rounded-lg border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
+          <p className="text-neutral-500 dark:text-neutral-400">No integrations connected yet.</p>
+          <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-600">
+            Connect QuickBooks to start monitoring risk flags.
+          </p>
+          <Link
+            href="/dashboard/integrations"
+            className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            Go to integrations
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

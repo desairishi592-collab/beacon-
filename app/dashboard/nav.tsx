@@ -2,19 +2,29 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
+import type { Field } from '@/lib/supabase/types'
 
-const LINKS = [
-  { href: '/dashboard', label: 'Home' },
-  { href: '/dashboard/integrations', label: 'Integrations' },
-  { href: '/dashboard/risk-flags', label: 'Risk flags' },
-]
-
-export function DashboardNav() {
+export function DashboardNav({ field }: { field?: Field }) {
   const pathname = usePathname()
+
+  // Finance has a real data integration (QuickBooks); other fields get the
+  // manual check-in placeholder instead until theirs is built.
+  const links =
+    field && isManualCheckinField(field)
+      ? [
+          { href: '/dashboard', label: 'Home' },
+          { href: '/dashboard/check-in', label: 'Check-in' },
+        ]
+      : [
+          { href: '/dashboard', label: 'Home' },
+          { href: '/dashboard/integrations', label: 'Integrations' },
+          { href: '/dashboard/risk-flags', label: 'Risk flags' },
+        ]
 
   return (
     <nav className="w-48 shrink-0 space-y-1">
-      {LINKS.map((link) => (
+      {links.map((link) => (
         <Link
           key={link.href}
           href={link.href}

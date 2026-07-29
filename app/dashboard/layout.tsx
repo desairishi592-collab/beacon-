@@ -10,7 +10,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
   const { userId, db } = session
 
-  const { data: profile } = await db.from('profiles').select('name').eq('id', userId).maybeSingle()
+  const { data: profile } = await db
+    .from('profiles')
+    .select('name, field')
+    .eq('id', userId)
+    .maybeSingle()
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
@@ -34,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-8 px-6 py-8">
-        <DashboardNav />
+        <DashboardNav field={profile?.field} />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>

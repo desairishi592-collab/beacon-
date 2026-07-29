@@ -45,6 +45,15 @@ export type RiskFlag = {
   created_at: string
 }
 
+export type ManualCheckin = {
+  id: string
+  profile_id: string
+  field: Field
+  responses: Record<string, number>
+  notes: string | null
+  created_at: string
+}
+
 export type QuickbooksConnection = {
   id: string
   profile_id: string
@@ -145,6 +154,21 @@ export type Database = {
           title: string
           explanation: string
           recommendation: string
+        }>
+        Relationships: []
+      }
+      manual_checkins: {
+        Row: ManualCheckin
+        Insert: {
+          id?: string
+          profile_id: string
+          field: Field
+          responses?: Record<string, number>
+          notes?: string | null
+        }
+        Update: Partial<{
+          responses: Record<string, number>
+          notes: string | null
         }>
         Relationships: []
       }
