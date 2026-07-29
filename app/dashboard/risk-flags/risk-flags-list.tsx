@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
+import { DownloadRiskFlagsReportButton } from './download-risk-flags-report-button'
 
 // Two-tier visual treatment over the four-value severity column: critical/high
 // read as "urgent" (red, warning icon), medium/low as "informational" (blue,
@@ -9,7 +10,7 @@ import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
 const URGENT_SEVERITIES: RiskSeverity[] = ['critical', 'high']
 const SEVERITY_RANK: Record<RiskSeverity, number> = { critical: 0, high: 1, medium: 2, low: 3 }
 
-type SeverityFilter = 'all' | RiskSeverity
+export type SeverityFilter = 'all' | RiskSeverity
 
 const SEVERITY_OPTIONS: { value: SeverityFilter; label: string }[] = [
   { value: 'all', label: 'All severities' },
@@ -81,9 +82,15 @@ function RiskFlagCard({ flag }: { flag: RiskFlag }) {
   )
 }
 
-export function RiskFlagsList({ flags }: { flags: RiskFlag[] }) {
-  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
-
+function RiskFlagsList({
+  flags,
+  severityFilter,
+  onSeverityFilterChange,
+}: {
+  flags: RiskFlag[]
+  severityFilter: SeverityFilter
+  onSeverityFilterChange: (value: SeverityFilter) => void
+}) {
   const filteredFlags = flags.filter(
     (flag) => severityFilter === 'all' || flag.severity === severityFilter,
   )
@@ -109,7 +116,7 @@ export function RiskFlagsList({ flags }: { flags: RiskFlag[] }) {
         <select
           id="severity-filter"
           value={severityFilter}
-          onChange={(e) => setSeverityFilter(e.target.value as SeverityFilter)}
+          onChange={(e) => onSeverityFilterChange(e.target.value as SeverityFilter)}
           className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
         >
           {SEVERITY_OPTIONS.map((opt) => (
@@ -132,6 +139,28 @@ export function RiskFlagsList({ flags }: { flags: RiskFlag[] }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+export function RiskFlagsSection({ flags }: { flags: RiskFlag[] }) {
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
+
+  const filteredFlags = flags.filter(
+    (flag) => severityFilter === 'all' || flag.severity === severityFilter,
+  )
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Flags</h2>
+        {filteredFlags.length > 0 && <DownloadRiskFlagsReportButton flags={filteredFlags} />}
+      </div>
+      <RiskFlagsList
+        flags={flags}
+        severityFilter={severityFilter}
+        onSeverityFilterChange={setSeverityFilter}
+      />
     </div>
   )
 }
