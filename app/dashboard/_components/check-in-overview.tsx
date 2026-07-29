@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { CurrentSession } from '@/lib/current-user'
-import type { Field } from '@/lib/supabase/types'
-import { getCheckInQuestions, isManualCheckinField } from '@/lib/check-ins/questions'
+import { getCheckInQuestions } from '@/lib/check-ins/questions'
 import { CheckInHistory } from './check-in-history'
 import { CheckInTrends } from './check-in-trends'
 
@@ -40,21 +39,17 @@ function GatheringDataCard() {
   )
 }
 
-// Renders the check-in history & trends section for manual-checkin-track
-// users, in the same dashboard-home slot FinancialOverview uses for the
-// QuickBooks track: a severity trend chart, recurring risk areas, and the
-// full submission list. Runs inside a Suspense boundary from
-// app/dashboard/page.tsx.
+// Renders the check-in history & trends section: a severity trend chart,
+// recurring risk areas, and the full submission list. Runs inside a
+// Suspense boundary from app/dashboard/page.tsx.
 export async function CheckInOverview({
   session,
   hasProfile,
-  field,
 }: {
   session: CurrentSession | null
   hasProfile: boolean
-  field?: Field
 }) {
-  if (!session || !hasProfile || !field || !isManualCheckinField(field)) {
+  if (!session || !hasProfile) {
     return <EmptyStateCard />
   }
 
@@ -75,7 +70,7 @@ export async function CheckInOverview({
     return <GatheringDataCard />
   }
 
-  const questions = getCheckInQuestions(field)
+  const questions = getCheckInQuestions()
 
   return (
     <div className="mt-6 space-y-6">

@@ -3,8 +3,8 @@ function SkeletonBlock({ className }: { className: string }) {
 }
 
 // Instant fallback for any page under /dashboard that fetches its data
-// directly in the page body (risk-flags, check-in history, organization,
-// settings) rather than behind its own Suspense boundary. Renders inside
+// directly in the page body (check-in history, organization, settings)
+// rather than behind its own Suspense boundary. Renders inside
 // app/dashboard/layout.tsx's <main>, so header/nav stay visible.
 export default function DashboardLoading() {
   return (

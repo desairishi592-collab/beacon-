@@ -1,25 +1,14 @@
 import type { TeamRole } from '@/lib/supabase/types'
 
-// One row per team member — the finance/check-in split mirrors
-// DashboardSummary's lastActivityLabel (lib/dashboard/summary.ts): finance
-// profiles surface their QuickBooks sync recency, everyone else surfaces
-// their manual check-in recency and severity trend.
-export type TeamOverviewRow =
-  | {
-      name: string
-      role: string
-      teamRole: TeamRole
-      track: 'check-in'
-      lastCheckInAt: string | null
-      trendDelta: number | null
-    }
-  | {
-      name: string
-      role: string
-      teamRole: TeamRole
-      track: 'sync'
-      lastSyncAt: string | null
-    }
+// One row per team member, mirroring DashboardSummary's lastActivityLabel
+// (lib/dashboard/summary.ts): manual check-in recency and severity trend.
+export type TeamOverviewRow = {
+  name: string
+  role: string
+  teamRole: TeamRole
+  lastCheckInAt: string | null
+  trendDelta: number | null
+}
 
 function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
@@ -39,13 +28,11 @@ function trendLabel(delta: number | null): string {
 }
 
 export function buildTeamOverviewCsv(rows: TeamOverviewRow[]): string {
-  const header = ['Name', 'Role', 'Team Role', 'Last Check-in', 'Severity Trend', 'Last Sync']
+  const header = ['Name', 'Role', 'Team Role', 'Last Check-in', 'Severity Trend']
 
   const body = rows.map((row) => {
     const teamRoleLabel = row.teamRole === 'admin' ? 'Admin' : 'Member'
-    return row.track === 'check-in'
-      ? [row.name, row.role, teamRoleLabel, formatDate(row.lastCheckInAt), trendLabel(row.trendDelta), '']
-      : [row.name, row.role, teamRoleLabel, '', '', formatDate(row.lastSyncAt)]
+    return [row.name, row.role, teamRoleLabel, formatDate(row.lastCheckInAt), trendLabel(row.trendDelta)]
   })
 
   return [header, ...body].map((row) => row.map(csvField).join(',')).join('\r\n')

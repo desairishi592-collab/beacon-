@@ -1,7 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { escapeHtml } from './html'
-import { getCheckInQuestions, RATING_SCALE, type ManualCheckinField } from '@/lib/check-ins/questions'
+import { getCheckInQuestions, RATING_SCALE } from '@/lib/check-ins/questions'
 
 // Same threshold as the "Significant"/"Severe" labels in RATING_SCALE.
 const SEVERE_RATING_THRESHOLD = 4
@@ -9,7 +9,6 @@ const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r
 
 type SubmittedCheckin = {
   profileId: string
-  field: ManualCheckinField
   responses: Record<string, number>
   notes: string | null
 }
@@ -69,7 +68,7 @@ async function sendEmail(
 // rates Significant/Severe (4/5); unlike risk flags there's no automated
 // analysis of check-ins, so this is a plain threshold on the raw ratings.
 export async function notifySevereCheckin(checkin: SubmittedCheckin, origin: string): Promise<void> {
-  const questions = getCheckInQuestions(checkin.field)
+  const questions = getCheckInQuestions()
   const severeItems = questions
     .map((question) => ({ prompt: question.prompt, rating: checkin.responses[question.id] }))
     .filter((item): item is { prompt: string; rating: number } => item.rating >= SEVERE_RATING_THRESHOLD)

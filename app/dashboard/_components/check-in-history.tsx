@@ -1,5 +1,5 @@
 import type { ManualCheckin } from '@/lib/supabase/types'
-import { getCheckInQuestions, RATING_SCALE, type ManualCheckinField } from '@/lib/check-ins/questions'
+import { getCheckInQuestions, RATING_SCALE } from '@/lib/check-ins/questions'
 import { MODERATE_RATING_THRESHOLD, overallSeverity, SEVERE_RATING_THRESHOLD } from '@/lib/check-ins/severity'
 
 const RATING_LABEL = new Map<number, string>(RATING_SCALE.map((r) => [r.value, r.label]))
@@ -20,7 +20,7 @@ export function SeverityBadge({ rating }: { rating: number }) {
 }
 
 function CheckInCard({ checkin }: { checkin: ManualCheckin }) {
-  const questions = getCheckInQuestions(checkin.field as ManualCheckinField)
+  const questions = getCheckInQuestions()
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
@@ -59,8 +59,7 @@ function CheckInCard({ checkin }: { checkin: ManualCheckin }) {
   )
 }
 
-// Simple, most-recent-first list of past manual check-ins — the check-in
-// track's equivalent of FinancialTrends for the QuickBooks track.
+// Simple, most-recent-first list of past manual check-ins.
 export function CheckInHistory({ checkins }: { checkins: ManualCheckin[] }) {
   return (
     <div className="mt-6 space-y-4">

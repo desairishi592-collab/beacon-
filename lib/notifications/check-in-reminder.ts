@@ -24,7 +24,7 @@ async function sendReminderEmail(
           type: 'text/html',
           value: `<div style="font-family:sans-serif;color:#111;max-width:560px;">
             <h2 style="margin:0 0 12px;">Time for your check-in</h2>
-            <p style="margin:0 0 16px;color:#555;font-size:14px;">It's been a week or more since your last Beacon check-in. A couple minutes now keeps a risk signal flowing for your field.</p>
+            <p style="margin:0 0 16px;color:#555;font-size:14px;">It's been a week or more since your last Beacon check-in. A couple minutes now keeps a risk signal flowing for your team.</p>
             <a href="${dashboardUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;">Submit check-in</a>
           </div>`,
         },
@@ -43,14 +43,12 @@ export type CheckinReminderResult = {
   error: string | null
 }
 
-// Reminds every non-Finance profile (Finance gets automated QuickBooks
-// monitoring instead — see lib/quickbooks) that hasn't submitted a
-// manual_checkins row in REMINDER_INTERVAL_DAYS. One profile at a time, so
-// one failure (no email on file, a transient SendGrid error) doesn't stop
-// the rest — same fan-out shape as syncAllQuickbooksConnections. Silently
-// no-ops if SendGrid isn't configured, same as notifyNewRiskFlags. Skips
-// profiles that opted out via check_in_reminder_enabled (app/dashboard/settings),
-// same convention as weekly_digest_enabled in sendWeeklyDigests.
+// Reminds every profile that hasn't submitted a manual_checkins row in
+// REMINDER_INTERVAL_DAYS. One profile at a time, so one failure (no email
+// on file, a transient SendGrid error) doesn't stop the rest. Silently
+// no-ops if SendGrid isn't configured. Skips profiles that opted out via
+// check_in_reminder_enabled (app/dashboard/settings), same convention as
+// weekly_digest_enabled in sendWeeklyDigests.
 export async function sendOverdueCheckinReminders(origin: string): Promise<CheckinReminderResult[]> {
   const sendgridKey = process.env.SENDGRID_API_KEY
   const fromEmail = process.env.SENDGRID_FROM_EMAIL
@@ -60,7 +58,6 @@ export async function sendOverdueCheckinReminders(origin: string): Promise<Check
   const { data: profiles, error } = await db
     .from('profiles')
     .select('id')
-    .neq('field', 'finance')
     .eq('check_in_reminder_enabled', true)
   if (error) throw error
 

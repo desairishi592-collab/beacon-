@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { sendWeeklyDigests } from '@/lib/notifications/weekly-digest'
 
-// Invoked weekly by Vercel Cron (see vercel.json's `crons` entry). Same
-// Bearer $CRON_SECRET auth as /api/cron/quickbooks-sync — see that route
-// for why an unguarded cron endpoint is a problem.
+// Invoked weekly by Vercel Cron (see vercel.json's `crons` entry), gated
+// behind a Bearer $CRON_SECRET so the endpoint can't be triggered by anyone
+// who finds the URL.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {

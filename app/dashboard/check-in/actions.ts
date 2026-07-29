@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { getCurrentSession } from '@/lib/current-user'
-import { getCheckInQuestions, isManualCheckinField, RATING_SCALE } from '@/lib/check-ins/questions'
+import { getCheckInQuestions, RATING_SCALE } from '@/lib/check-ins/questions'
 import { notifySevereCheckin } from '@/lib/notifications/check-in-email'
 import { getRequestOrigin } from '@/lib/request-origin'
 
@@ -18,15 +18,10 @@ export async function submitCheckIn(
   if (!session) return { error: 'Not signed in.' }
   const { userId, db } = session
 
-  // Field is never trusted from the form — re-read it from the profile so a
-  // stale or tampered client can't submit answers under the wrong question set.
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   if (!profile) return { error: 'Complete onboarding before checking in.' }
-  if (!isManualCheckinField(profile.field)) {
-    return { error: 'Your field has a connected integration — check-ins are not needed.' }
-  }
 
-  const questions = getCheckInQuestions(profile.field)
+  const questions = getCheckInQuestions()
   const responses: Record<string, number> = {}
   for (const question of questions) {
     const raw = Number(formData.get(question.id))
@@ -50,7 +45,7 @@ export async function submitCheckIn(
   }
 
   await notifySevereCheckin(
-    { profileId: userId, field: profile.field, responses, notes: notes || null },
+    { profileId: userId, responses, notes: notes || null },
     await getRequestOrigin()
   )
 

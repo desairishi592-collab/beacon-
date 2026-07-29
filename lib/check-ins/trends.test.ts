@@ -9,7 +9,7 @@ const QUESTIONS: CheckInQuestion[] = [
 ]
 
 function checkin(responses: Record<string, number>, createdAt: string): ManualCheckin {
-  return { id: createdAt, profile_id: 'p1', field: 'engineering', responses, notes: null, created_at: createdAt }
+  return { id: createdAt, profile_id: 'p1', field: 'medicine', responses, notes: null, created_at: createdAt }
 }
 
 describe('recurringRiskAreas', () => {

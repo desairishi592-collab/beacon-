@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
-import { getCheckInQuestions, isManualCheckinField } from '@/lib/check-ins/questions'
+import { getCheckInQuestions } from '@/lib/check-ins/questions'
 import { SEVERE_RATING_THRESHOLD } from '@/lib/check-ins/severity'
 import { SeverityBadge } from '../../../_components/check-in-history'
 
@@ -18,10 +18,8 @@ export default async function RecurringRiskAreaPage({
 
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   if (!profile) redirect('/onboarding')
-  // Finance has a real integration (QuickBooks) and its own trends view.
-  if (!isManualCheckinField(profile.field)) redirect('/dashboard/integrations')
 
-  const question = getCheckInQuestions(profile.field).find((q) => q.id === questionId)
+  const question = getCheckInQuestions().find((q) => q.id === questionId)
   if (!question) notFound()
 
   const { data: checkins } = await db

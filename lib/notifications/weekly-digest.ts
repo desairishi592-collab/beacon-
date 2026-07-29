@@ -2,45 +2,34 @@ import 'server-only'
 import type { CurrentSession } from '@/lib/current-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getDashboardSummary, type DashboardSummary, type OverallStatus } from '@/lib/dashboard/summary'
-import { SEVERITY_ORDER, SEVERITY_LABEL, daysSince, formatRunway } from '@/lib/dashboard/format'
+import { daysSince } from '@/lib/dashboard/format'
 import { escapeHtml } from './html'
 
-// Same three labels as STATUS_COPY in dashboard-summary.tsx / STATUS_LABEL
+// Same two labels as STATUS_COPY in dashboard-summary.tsx / STATUS_LABEL
 // in summary-text.ts, redefined here since neither is exported for reuse.
 const STATUS_LABEL: Record<OverallStatus, string> = {
   healthy: 'Healthy',
   needs_attention: 'Needs attention',
-  critical: 'Critical',
 }
 
 const STATUS_COLOR: Record<OverallStatus, string> = {
   healthy: '#15803d',
   needs_attention: '#b45309',
-  critical: '#c92b25',
 }
 
 // Mirrors buildDashboardSummaryText (lib/dashboard/summary-text.ts) but as
 // inline-styled HTML for email, following the hand-built-markup convention
 // of every other module in lib/notifications.
 function digestHtml(summary: DashboardSummary, dashboardUrl: string): string {
-  const total = SEVERITY_ORDER.reduce((sum, severity) => sum + summary.riskFlagCounts[severity], 0)
-  const breakdown = SEVERITY_ORDER.map(
-    (severity) => `${SEVERITY_LABEL[severity]} ${summary.riskFlagCounts[severity]}`,
-  ).join(', ')
   const days = daysSince(summary.lastActivityAt)
-  const activityLabel = summary.lastActivityLabel === 'sync' ? 'sync' : 'check-in'
 
-  const urgentBlock = summary.urgentIndicator
+  const urgentBlock = summary.isCheckInOverdue
     ? `<div style="margin:16px 0;padding:12px 14px;border-radius:6px;background:#fef2f2;border:1px solid #fecaca;">
-        <p style="margin:0;font-size:13px;font-weight:600;color:#991b1b;">${
-          summary.urgentIndicator.kind === 'cash_runway_critical' ? 'Cash runway critical' : 'Check-in overdue'
-        }</p>
+        <p style="margin:0;font-size:13px;font-weight:600;color:#991b1b;">Check-in overdue</p>
         <p style="margin:4px 0 0;font-size:13px;color:#7f1d1d;">${escapeHtml(
-          summary.urgentIndicator.kind === 'cash_runway_critical'
-            ? `${summary.urgentIndicator.title} — ${formatRunway(summary.urgentIndicator.runwayMonths)} at the current burn rate.`
-            : days === null
-              ? 'No check-in has been submitted yet.'
-              : `It's been ${days} day${days === 1 ? '' : 's'} since the last check-in.`,
+          days === null
+            ? 'No check-in has been submitted yet.'
+            : `It's been ${days} day${days === 1 ? '' : 's'} since the last check-in.`,
         )}</p>
       </div>`
     : ''
@@ -48,8 +37,7 @@ function digestHtml(summary: DashboardSummary, dashboardUrl: string): string {
   return `<div style="font-family:sans-serif;color:#111;max-width:560px;">
     <h2 style="margin:0 0 12px;">Your weekly Beacon status</h2>
     <p style="margin:0 0 6px;font-size:14px;">Overall status: <strong style="color:${STATUS_COLOR[summary.overallStatus]};">${STATUS_LABEL[summary.overallStatus]}</strong></p>
-    <p style="margin:0 0 6px;font-size:14px;color:#555;">Open risk flags: ${total} (${escapeHtml(breakdown)})</p>
-    <p style="margin:0;font-size:14px;color:#555;">Days since last ${activityLabel}: ${days === null ? 'Never' : days}</p>
+    <p style="margin:0;font-size:14px;color:#555;">Days since last check-in: ${days === null ? 'Never' : days}</p>
     ${urgentBlock}
     <a href="${dashboardUrl}" style="display:inline-block;margin-top:16px;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;">View dashboard</a>
   </div>`
@@ -99,7 +87,7 @@ export type WeeklyDigestResult = {
 }
 
 // Weekly digest of the same status a profile sees on their dashboard
-// (overall status, open risk flag counts, urgency indicator) — reuses
+// (overall status, days since last check-in, urgency indicator) — reuses
 // getDashboardSummary (lib/dashboard/summary.ts) as the single source of
 // truth rather than re-deriving it. Skips profiles that opted out via
 // weekly_digest_enabled (app/dashboard/settings). One profile at a time,
@@ -114,7 +102,7 @@ export async function sendWeeklyDigests(origin: string): Promise<WeeklyDigestRes
   const db = createAdminClient()
   const { data: profiles, error } = await db
     .from('profiles')
-    .select('id, field')
+    .select('id')
     .eq('weekly_digest_enabled', true)
   if (error) throw error
 
@@ -134,7 +122,7 @@ export async function sendWeeklyDigests(origin: string): Promise<WeeklyDigestRes
       // fine here for the per-request RLS client it's normally called
       // with from a signed-in session.
       const session: CurrentSession = { userId: profile.id, db }
-      const summary = await getDashboardSummary(session, profile.field === 'finance')
+      const summary = await getDashboardSummary(session)
 
       await sendDigestEmail(sendgridKey, fromEmail, userData.user.email, summary, dashboardUrl)
       results.push({ profileId: profile.id, sent: true, error: null })

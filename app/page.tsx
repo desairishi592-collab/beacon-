@@ -4,34 +4,29 @@ import { createClient } from '@/lib/supabase/server'
 
 const FEATURES = [
   {
-    title: 'Automated risk flags',
+    title: 'Weekly check-ins',
     description:
-      'Connect QuickBooks and Beacon watches your synced financials for cash, burn, coverage, and expense risk — flagging anything that crosses a threshold, by severity.',
-  },
-  {
-    title: 'Check-ins for every field',
-    description:
-      "No integration for your field yet? Answer a few quick, field-specific questions each week — medicine, engineering, and other fields all have their own set — so there's still a signal to track.",
+      'A few quick questions on patient safety, staffing, compliance, and supplies — answer them periodically so there\'s always a current signal to track.',
   },
   {
     title: 'One dashboard summary',
     description:
-      'An at-a-glance status (Healthy, Needs attention, Critical), open risk flag counts by severity, and days since your last sync or check-in — with an urgent banner when cash runway turns critical or a check-in is overdue.',
+      'An at-a-glance status (Healthy or Needs attention) and days since your last check-in, with an urgent banner when a check-in is overdue.',
   },
   {
-    title: 'Alerts you control',
+    title: 'Severity trends & recurring risk areas',
     description:
-      'Every risk signal, past and present, in one list. Mark alerts read or dismiss them, and choose which signal types email you — plus an optional weekly digest.',
+      'See how your overall severity has moved over time and which questions keep coming back as a concern.',
   },
   {
     title: 'Team invites & oversight',
     description:
-      "Invite teammates by email and track pending invites. Admins get a Team view of everyone's check-in activity — financial data and risk flags stay private to each person.",
+      "Invite teammates by email and track pending invites. Admins get a Team view of everyone's check-in activity.",
   },
   {
     title: 'CSV exports',
     description:
-      'Download your risk flags (respecting whatever severity filter you have applied) or a full team overview, ready to drop into a spreadsheet.',
+      'Download your check-in history or a full team overview, ready to drop into a spreadsheet.',
   },
 ]
 
@@ -68,12 +63,11 @@ export default async function RootPage() {
       <main className="flex-1">
         <section className="mx-auto max-w-5xl px-6 py-20 text-center sm:py-28">
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            Risk monitoring for middle managers
+            Risk monitoring for medical teams
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500 dark:text-neutral-400">
-            Beacon keeps a running check on the health of your team — automated financial risk
-            detection where an integration exists, lightweight check-ins everywhere else, and one
-            dashboard that tells you what needs attention today.
+            Beacon keeps a running check on the health of your team — lightweight weekly check-ins
+            and one dashboard that tells you what needs attention today.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Link
@@ -107,18 +101,13 @@ export default async function RootPage() {
                 Healthy
               </span>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">Overall status</p>
                 <p className="mt-1 text-xl font-semibold tracking-tight">Healthy</p>
               </div>
               <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">Open risk flags</p>
-                <p className="mt-1 text-xl font-semibold tracking-tight">2</p>
-                <p className="mt-2 text-xs font-medium text-red-400 dark:text-red-300">Medium 2</p>
-              </div>
-              <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">Days since last sync</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">Days since last check-in</p>
                 <p className="mt-1 text-xl font-semibold tracking-tight">1</p>
               </div>
             </div>
@@ -148,7 +137,7 @@ export default async function RootPage() {
           <div className="mx-auto max-w-5xl px-6 py-16 text-center">
             <h2 className="text-2xl font-semibold tracking-tight">Ready to see your risk picture?</h2>
             <p className="mx-auto mt-2 max-w-xl text-neutral-500 dark:text-neutral-400">
-              A short onboarding walks you through your name, role, field, and team size, then it&apos;s
+              A short onboarding walks you through your name, role, and team size, then it&apos;s
               straight to your dashboard.
             </p>
             <Link
@@ -163,7 +152,7 @@ export default async function RootPage() {
 
       <footer className="border-t border-neutral-200 py-6 dark:border-neutral-800">
         <div className="mx-auto max-w-5xl px-6 text-center text-sm text-neutral-400 dark:text-neutral-600">
-          Beacon — risk monitoring for middle managers.
+          Beacon — risk monitoring for medical teams.
         </div>
       </footer>
     </div>

@@ -242,9 +242,8 @@ const PERIOD_TREND_TEXT: Record<PeriodComparison['trend'], string> = {
 }
 
 // Small "this month vs last month" indicator that sits above the summary
-// cards — the check-in track's answer to how FinancialTrends shows % deltas
-// vs prior month, but calendar-month based and paired with which risk areas
-// are new this period rather than a currency delta.
+// cards — calendar-month based, paired with which risk areas are new this
+// period.
 function PeriodComparisonIndicator({ comparison }: { comparison: PeriodComparison | null }) {
   if (!comparison) {
     return (
@@ -391,10 +390,8 @@ function downloadCheckinReport(checkins: ManualCheckin[], questions: CheckInQues
   URL.revokeObjectURL(url)
 }
 
-// Full history & trends view for manual-checkin-track users — the check-in
-// track's equivalent of FinancialTrends for the QuickBooks track. Assumes at
-// least 2 check-ins (oldest first); callers should show a lighter-weight
-// state for 0 or 1.
+// Full history & trends view. Assumes at least 2 check-ins (oldest first);
+// callers should show a lighter-weight state for 0 or 1.
 export function CheckInTrends({
   checkins,
   questions,

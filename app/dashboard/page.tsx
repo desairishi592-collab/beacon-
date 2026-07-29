@@ -1,9 +1,6 @@
 import { Suspense } from 'react'
 import { getCurrentSession } from '@/lib/current-user'
-import { isManualCheckinField } from '@/lib/check-ins/questions'
 import { DashboardSummary, DashboardSummarySkeleton } from './_components/dashboard-summary'
-import { FinancialOverview } from './_components/financial-overview'
-import { FinancialTrendsSkeleton } from './_components/financial-trends'
 import { CheckInOverview } from './_components/check-in-overview'
 import { CheckInHistorySkeleton } from './_components/check-in-history'
 
@@ -13,8 +10,6 @@ export default async function DashboardHomePage() {
   const { data: profile } = session
     ? await session.db.from('profiles').select('name, field').eq('id', session.userId).maybeSingle()
     : { data: null }
-
-  const showCheckInPath = profile ? isManualCheckinField(profile.field) : false
 
   return (
     <div>
@@ -26,18 +21,12 @@ export default async function DashboardHomePage() {
       </p>
 
       <Suspense fallback={<DashboardSummarySkeleton />}>
-        <DashboardSummary session={session} isFinance={!showCheckInPath} />
+        <DashboardSummary session={session} />
       </Suspense>
 
-      {showCheckInPath ? (
-        <Suspense fallback={<CheckInHistorySkeleton />}>
-          <CheckInOverview session={session} hasProfile={!!profile} field={profile?.field} />
-        </Suspense>
-      ) : (
-        <Suspense fallback={<FinancialTrendsSkeleton />}>
-          <FinancialOverview session={session} hasProfile={!!profile} />
-        </Suspense>
-      )}
+      <Suspense fallback={<CheckInHistorySkeleton />}>
+        <CheckInOverview session={session} hasProfile={!!profile} />
+      </Suspense>
     </div>
   )
 }

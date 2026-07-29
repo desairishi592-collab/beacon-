@@ -13,15 +13,14 @@ import { sendOverdueCheckinReminders } from './check-in-reminder'
 
 type Profile = { id: string }
 
-// Two tables are queried: `profiles` (filtered by field + reminder opt-in)
-// and, per profile, `manual_checkins` (latest submission date). Dispatches
-// on table name since the two chains shape differently.
+// Two tables are queried: `profiles` (filtered by reminder opt-in) and, per
+// profile, `manual_checkins` (latest submission date). Dispatches on table
+// name since the two chains shape differently.
 function makeDb(profiles: Profile[] | null, latestByProfile: Record<string, string | null> = {}, profilesError: unknown = null) {
   const from = vi.fn((table: string) => {
     if (table === 'profiles') {
       const eq = vi.fn().mockResolvedValue({ data: profiles, error: profilesError })
-      const neq = vi.fn(() => ({ eq }))
-      const select = vi.fn(() => ({ neq }))
+      const select = vi.fn(() => ({ eq }))
       return { select }
     }
     if (table === 'manual_checkins') {
@@ -74,7 +73,7 @@ describe('sendOverdueCheckinReminders', () => {
     expect(createAdminClient).not.toHaveBeenCalled()
   })
 
-  it('only queries profiles opted into reminders, excluding Finance', async () => {
+  it('only queries profiles opted into reminders', async () => {
     const db = makeDb([{ id: 'profile-1' }], { 'profile-1': null })
     createAdminClient.mockReturnValue(db)
 
@@ -83,9 +82,7 @@ describe('sendOverdueCheckinReminders', () => {
     const profilesFromCall = db.from.mock.results.find((_r, i) => db.from.mock.calls[i][0] === 'profiles')
     expect(profilesFromCall).toBeDefined()
     const select = (profilesFromCall!.value as { select: ReturnType<typeof vi.fn> }).select
-    const neqResult = select.mock.results[0].value.neq
-    expect(neqResult).toHaveBeenCalledWith('field', 'finance')
-    const eqResult = neqResult.mock.results[0].value.eq
+    const eqResult = select.mock.results[0].value.eq
     expect(eqResult).toHaveBeenCalledWith('check_in_reminder_enabled', true)
   })
 
