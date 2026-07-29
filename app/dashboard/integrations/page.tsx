@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SyncButton } from './sync-button'
+import { DisconnectButton } from './disconnect-button'
 
 export default async function IntegrationsPage({
   searchParams,
@@ -77,7 +78,10 @@ export default async function IntegrationsPage({
           </div>
 
           {connection ? (
-            <SyncButton />
+            <div className="flex items-start gap-2">
+              <SyncButton />
+              <DisconnectButton />
+            </div>
           ) : (
             <a
               href="/api/quickbooks/connect"
