@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { getCurrentSession } from '@/lib/current-user'
 import { isManualCheckinField } from '@/lib/check-ins/questions'
+import { DashboardSummary, DashboardSummarySkeleton } from './_components/dashboard-summary'
 import { FinancialOverview } from './_components/financial-overview'
 import { FinancialTrendsSkeleton } from './_components/financial-trends'
 import { CheckInOverview } from './_components/check-in-overview'
@@ -23,6 +24,10 @@ export default async function DashboardHomePage() {
       <p className="mt-1 text-neutral-500 dark:text-neutral-400">
         Here&apos;s your risk overview.
       </p>
+
+      <Suspense fallback={<DashboardSummarySkeleton />}>
+        <DashboardSummary session={session} isFinance={!showCheckInPath} />
+      </Suspense>
 
       {showCheckInPath ? (
         <Suspense fallback={<CheckInHistorySkeleton />}>
