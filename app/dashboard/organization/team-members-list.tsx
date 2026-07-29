@@ -10,6 +10,7 @@ type TeamMember = {
   name: string
   role: string
   team_role: TeamRole
+  email: string
 }
 
 export function TeamMembersList({ members }: { members: TeamMember[] }) {
@@ -17,7 +18,10 @@ export function TeamMembersList({ members }: { members: TeamMember[] }) {
 
   const trimmed = query.trim().toLowerCase()
   const filtered = trimmed
-    ? members.filter((member) => member.name.toLowerCase().includes(trimmed))
+    ? members.filter(
+        (member) =>
+          member.name.toLowerCase().includes(trimmed) || member.email.toLowerCase().includes(trimmed),
+      )
     : members
 
   return (
@@ -26,8 +30,8 @@ export function TeamMembersList({ members }: { members: TeamMember[] }) {
         type="text"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search members by name…"
-        aria-label="Search members by name"
+        placeholder="Search members by name or email…"
+        aria-label="Search members by name or email"
         className="mt-4 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
       />
 

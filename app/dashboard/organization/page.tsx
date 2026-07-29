@@ -29,7 +29,7 @@ export default async function OrganizationPage() {
   if (!profile) redirect('/onboarding')
   if (profile.team_role !== 'admin') redirect('/dashboard/settings')
 
-  const [{ data: teamMembers }, { data: pendingInvites }] = await Promise.all([
+  const [{ data: teamMembersRaw }, { data: pendingInvites }] = await Promise.all([
     db
       .from('profiles')
       .select('id, name, role, team_role, field')
@@ -43,6 +43,17 @@ export default async function OrganizationPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
   ])
+
+  // profiles has no email column (see lib/supabase/types.ts) — emails live
+  // on auth.users, so look them up per-member via the admin client, same
+  // pattern used in lib/notifications/*.ts.
+  const teamMembers = await Promise.all(
+    (teamMembersRaw ?? []).map(async (member) => {
+      const adminDb = createAdminClient()
+      const { data: userData } = await adminDb.auth.admin.getUserById(member.id)
+      return { ...member, email: userData.user?.email ?? '' }
+    }),
+  )
 
   // Overview rows for the CSV export below — finance members get their last
   // QuickBooks sync (same admin-client read as financial-overview.tsx, since
