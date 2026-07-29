@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await db
     .from('profiles')
-    .select('name, role, team_size, team_role')
+    .select('name, role, team_size, team_role, weekly_digest_enabled, check_in_reminder_enabled')
     .eq('id', userId)
     .maybeSingle()
 
@@ -29,7 +29,13 @@ export default async function SettingsPage() {
       </div>
 
       <div className="max-w-md rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-        <SettingsForm name={profile.name} role={profile.role} teamSize={profile.team_size} />
+        <SettingsForm
+          name={profile.name}
+          role={profile.role}
+          teamSize={profile.team_size}
+          weeklyDigestEnabled={profile.weekly_digest_enabled}
+          checkInReminderEnabled={profile.check_in_reminder_enabled}
+        />
       </div>
 
       {!isAdmin && (

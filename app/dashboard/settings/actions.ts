@@ -13,6 +13,10 @@ export async function updateProfile(
   const name = String(formData.get('name') ?? '').trim()
   const role = String(formData.get('role') ?? '').trim()
   const teamSize = Number(formData.get('team_size'))
+  // Unchecked checkboxes are omitted from FormData entirely, not sent as
+  // 'false' — presence is the signal.
+  const weeklyDigestEnabled = formData.get('weekly_digest_enabled') === 'on'
+  const checkInReminderEnabled = formData.get('check_in_reminder_enabled') === 'on'
 
   if (!name) return { error: 'Name is required.' }
   if (!role) return { error: 'Position/role is required.' }
@@ -26,7 +30,13 @@ export async function updateProfile(
 
   const { error } = await db
     .from('profiles')
-    .update({ name, role, team_size: teamSize })
+    .update({
+      name,
+      role,
+      team_size: teamSize,
+      weekly_digest_enabled: weeklyDigestEnabled,
+      check_in_reminder_enabled: checkInReminderEnabled,
+    })
     .eq('id', userId)
 
   if (error) {

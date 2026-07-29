@@ -48,14 +48,20 @@ export type CheckinReminderResult = {
 // manual_checkins row in REMINDER_INTERVAL_DAYS. One profile at a time, so
 // one failure (no email on file, a transient SendGrid error) doesn't stop
 // the rest — same fan-out shape as syncAllQuickbooksConnections. Silently
-// no-ops if SendGrid isn't configured, same as notifyNewRiskFlags.
+// no-ops if SendGrid isn't configured, same as notifyNewRiskFlags. Skips
+// profiles that opted out via check_in_reminder_enabled (app/dashboard/settings),
+// same convention as weekly_digest_enabled in sendWeeklyDigests.
 export async function sendOverdueCheckinReminders(origin: string): Promise<CheckinReminderResult[]> {
   const sendgridKey = process.env.SENDGRID_API_KEY
   const fromEmail = process.env.SENDGRID_FROM_EMAIL
   if (!sendgridKey || !fromEmail) return []
 
   const db = createAdminClient()
-  const { data: profiles, error } = await db.from('profiles').select('id').neq('field', 'finance')
+  const { data: profiles, error } = await db
+    .from('profiles')
+    .select('id')
+    .neq('field', 'finance')
+    .eq('check_in_reminder_enabled', true)
   if (error) throw error
 
   const dashboardUrl = new URL('/dashboard/check-in', origin).toString()

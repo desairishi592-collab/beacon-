@@ -10,6 +10,8 @@ export type Profile = {
   team_size: number
   team_id: string
   team_role: TeamRole
+  weekly_digest_enabled: boolean
+  check_in_reminder_enabled: boolean
   created_at: string
   updated_at: string
 }
@@ -131,6 +133,8 @@ export type Database = {
           team_size: number
           team_id?: string
           team_role?: TeamRole
+          weekly_digest_enabled?: boolean
+          check_in_reminder_enabled?: boolean
         }
         Update: Partial<{
           name: string
@@ -139,6 +143,8 @@ export type Database = {
           team_size: number
           team_id: string
           team_role: TeamRole
+          weekly_digest_enabled: boolean
+          check_in_reminder_enabled: boolean
         }>
         Relationships: []
       }

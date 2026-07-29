@@ -56,10 +56,42 @@ describe('updateProfile', () => {
       name: 'Ada Lovelace',
       role: 'Founder',
       team_size: 5,
+      weekly_digest_enabled: false,
+      check_in_reminder_enabled: false,
     })
     expect(eq).toHaveBeenCalledWith('id', 'user-1')
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard/settings')
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('sets weekly_digest_enabled to true when the checkbox is checked', async () => {
+    const formData = makeFormData(validFields({ weekly_digest_enabled: 'on' }))
+
+    const result = await updateProfile(undefined, formData)
+
+    expect(result).toEqual({ success: true })
+    expect(update).toHaveBeenCalledWith({
+      name: 'Ada Lovelace',
+      role: 'Founder',
+      team_size: 5,
+      weekly_digest_enabled: true,
+      check_in_reminder_enabled: false,
+    })
+  })
+
+  it('sets check_in_reminder_enabled to true when the checkbox is checked', async () => {
+    const formData = makeFormData(validFields({ check_in_reminder_enabled: 'on' }))
+
+    const result = await updateProfile(undefined, formData)
+
+    expect(result).toEqual({ success: true })
+    expect(update).toHaveBeenCalledWith({
+      name: 'Ada Lovelace',
+      role: 'Founder',
+      team_size: 5,
+      weekly_digest_enabled: false,
+      check_in_reminder_enabled: true,
+    })
   })
 
   it('rejects a missing name before hitting the DB', async () => {
