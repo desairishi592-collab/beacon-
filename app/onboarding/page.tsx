@@ -1,6 +1,12 @@
 import { OnboardingWizard } from './onboarding-wizard'
 
-export default function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string }>
+}) {
+  const params = await searchParams
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 dark:bg-neutral-950">
       <div className="w-full max-w-md">
@@ -10,7 +16,7 @@ export default function OnboardingPage() {
             A few quick questions before you get started.
           </p>
         </div>
-        <OnboardingWizard />
+        <OnboardingWizard inviteId={params.invite} />
       </div>
     </div>
   )

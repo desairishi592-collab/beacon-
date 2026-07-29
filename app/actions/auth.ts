@@ -12,6 +12,7 @@ export async function signUpWithPassword(
 ): Promise<AuthState> {
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
+  const inviteId = String(formData.get('invite') ?? '').trim()
 
   if (!email || !password) {
     return { error: 'Email and password are required.' }
@@ -27,7 +28,7 @@ export async function signUpWithPassword(
     return { error: error.message }
   }
 
-  redirect('/onboarding')
+  redirect(inviteId ? `/onboarding?invite=${encodeURIComponent(inviteId)}` : '/onboarding')
 }
 
 export async function signInWithPassword(

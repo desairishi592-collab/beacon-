@@ -3,7 +3,7 @@ import { LoginForm } from './login-form'
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>
+  searchParams: Promise<{ error?: string; next?: string; invite?: string; email?: string }>
 }) {
   const params = await searchParams
 
@@ -16,7 +16,7 @@ export default async function LoginPage({
             Risk monitoring for managers
           </p>
         </div>
-        <LoginForm initialError={params.error} />
+        <LoginForm initialError={params.error} inviteId={params.invite} inviteEmail={params.email} />
       </div>
     </div>
   )

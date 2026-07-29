@@ -11,8 +11,16 @@ import {
 
 const initialState: AuthState = undefined
 
-export function LoginForm({ initialError }: { initialError?: string }) {
-  const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
+export function LoginForm({
+  initialError,
+  inviteId,
+  inviteEmail,
+}: {
+  initialError?: string
+  inviteId?: string
+  inviteEmail?: string
+}) {
+  const [mode, setMode] = useState<'sign-in' | 'sign-up'>(inviteId ? 'sign-up' : 'sign-in')
   const [signInState, signInAction, signInPending] = useActionState(
     signInWithPassword,
     initialState
@@ -55,6 +63,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       </div>
 
       <form action={action} className="space-y-4">
+        {mode === 'sign-up' && inviteId && <input type="hidden" name="invite" value={inviteId} />}
         <div className="space-y-1">
           <label htmlFor="email" className="text-sm font-medium">
             Email
@@ -65,6 +74,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
             type="email"
             required
             autoComplete="email"
+            defaultValue={inviteEmail}
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>

@@ -6,8 +6,19 @@ export type Profile = {
   role: string
   field: Field
   team_size: number
+  team_id: string
   created_at: string
   updated_at: string
+}
+
+export type TeamInviteStatus = 'pending' | 'accepted'
+
+export type TeamInvite = {
+  id: string
+  inviter_profile_id: string
+  invitee_email: string
+  status: TeamInviteStatus
+  created_at: string
 }
 
 export type FinancialSnapshot = {
@@ -105,12 +116,14 @@ export type Database = {
           role: string
           field: Field
           team_size: number
+          team_id?: string
         }
         Update: Partial<{
           name: string
           role: string
           field: Field
           team_size: number
+          team_id: string
         }>
         Relationships: []
       }
@@ -235,6 +248,19 @@ export type Database = {
           snapshots_synced: number
           error_message: string | null
           finished_at: string
+        }>
+        Relationships: []
+      }
+      team_invites: {
+        Row: TeamInvite
+        Insert: {
+          id?: string
+          inviter_profile_id: string
+          invitee_email: string
+          status?: TeamInviteStatus
+        }
+        Update: Partial<{
+          status: TeamInviteStatus
         }>
         Relationships: []
       }

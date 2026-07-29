@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { redirectMock, getCurrentSession } = vi.hoisted(() => ({
+const { redirectMock, getCurrentSession, resolveInviteTeamId } = vi.hoisted(() => ({
   redirectMock: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`)
   }),
   getCurrentSession: vi.fn(),
+  resolveInviteTeamId: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({ redirect: redirectMock }))
 vi.mock('@/lib/current-user', () => ({ getCurrentSession }))
+vi.mock('@/lib/team-invites', () => ({ resolveInviteTeamId }))
 
 import { completeOnboarding } from './actions'
 
@@ -118,5 +120,62 @@ describe('completeOnboarding', () => {
 
     expect(result?.error).toBe('Please select a field.')
     expect(from).not.toHaveBeenCalled()
+  })
+})
+
+describe('completeOnboarding with an invite', () => {
+  let upsert: ReturnType<typeof vi.fn>
+  let from: ReturnType<typeof vi.fn>
+  let getUser: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    upsert = vi.fn().mockResolvedValue({ error: null })
+    from = vi.fn(() => ({ upsert }))
+    getUser = vi.fn().mockResolvedValue({ data: { user: { email: 'newhire@example.com' } } })
+    getCurrentSession.mockReset()
+    getCurrentSession.mockResolvedValue({ userId: 'user-1', db: { from, auth: { getUser } } })
+    resolveInviteTeamId.mockReset()
+    resolveInviteTeamId.mockResolvedValue('team-abc')
+    redirectMock.mockClear()
+  })
+
+  it('resolves the invite and joins the inviter team_id', async () => {
+    const formData = makeFormData(validFields({ invite: 'invite-1' }))
+
+    await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
+
+    expect(resolveInviteTeamId).toHaveBeenCalledWith('invite-1', 'newhire@example.com')
+    expect(upsert).toHaveBeenCalledWith({
+      id: 'user-1',
+      name: 'Ada Lovelace',
+      role: 'Founder',
+      field: 'engineering',
+      team_size: 5,
+      team_id: 'team-abc',
+    })
+  })
+
+  it('completes onboarding without a team_id when the invite does not resolve', async () => {
+    resolveInviteTeamId.mockResolvedValue(undefined)
+    const formData = makeFormData(validFields({ invite: 'stale-invite' }))
+
+    await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
+
+    expect(upsert).toHaveBeenCalledWith({
+      id: 'user-1',
+      name: 'Ada Lovelace',
+      role: 'Founder',
+      field: 'engineering',
+      team_size: 5,
+    })
+  })
+
+  it('does not attempt to resolve an invite when no invite is present', async () => {
+    const formData = makeFormData(validFields())
+
+    await expect(completeOnboarding(undefined, formData)).rejects.toThrow('NEXT_REDIRECT:/dashboard')
+
+    expect(resolveInviteTeamId).not.toHaveBeenCalled()
+    expect(getUser).not.toHaveBeenCalled()
   })
 })

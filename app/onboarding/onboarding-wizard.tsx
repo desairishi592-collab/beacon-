@@ -14,7 +14,7 @@ const STEPS = ['Name', 'Role', 'Field', 'Team size'] as const
 
 const initialState: OnboardingState = undefined
 
-export function OnboardingWizard() {
+export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
@@ -133,6 +133,7 @@ export function OnboardingWizard() {
           <input type="hidden" name="name" value={name} />
           <input type="hidden" name="role" value={role} />
           <input type="hidden" name="field" value={field} />
+          {inviteId && <input type="hidden" name="invite" value={inviteId} />}
 
           <div className="space-y-1">
             <label htmlFor="team_size" className="text-sm font-medium">
