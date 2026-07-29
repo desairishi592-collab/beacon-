@@ -6,8 +6,9 @@ import { severityTrend } from '@/lib/check-ins/trends'
 import { ConfirmActionButton } from '../_components/confirm-action-button'
 import { InviteTeamMemberButton } from './invite-team-member-button'
 import { DownloadTeamOverviewButton } from './download-team-overview-button'
+import { TeamMembersList } from './team-members-list'
 import type { TeamOverviewRow } from '@/lib/organization/csv'
-import { revokeInvite, removeTeamMember } from './actions'
+import { revokeInvite } from './actions'
 
 // Admin-only: rendering is gated behind the nav link, but that's not a
 // security boundary (see AGENTS.md / node_modules/next/dist/docs server
@@ -114,31 +115,7 @@ export default async function OrganizationPage() {
         </div>
 
         {teamMembers && teamMembers.length > 0 ? (
-          <ul className="mt-4 space-y-2">
-            {teamMembers.map((member) => (
-              <li
-                key={member.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800"
-              >
-                <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{member.role}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium capitalize text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                    {member.team_role}
-                  </span>
-                  <ConfirmActionButton
-                    action={removeTeamMember}
-                    hiddenField={{ name: 'member_id', value: member.id }}
-                    label="Remove"
-                    confirmLabel="Confirm remove"
-                    pendingLabel="Removing…"
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <TeamMembersList members={teamMembers} />
         ) : (
           <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
             No team members yet. Invite someone above to get started.
