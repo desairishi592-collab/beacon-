@@ -43,6 +43,10 @@ export async function resolveInviteTeamId(
 
 export type TeamMembershipError = 'not_admin' | 'not_teammate' | 'not_found' | 'is_admin'
 
+// Shared result shape for the team-membership server actions (invite revoke,
+// member remove, leave team) that back ConfirmActionButton.
+export type TeamActionState = { error: string } | { success: true } | undefined
+
 // Removes a teammate from the admin's team, resetting them to a fresh solo
 // team (a "team of one", same as any never-invited profile gets by
 // default). Runs on the admin client because it writes another account's

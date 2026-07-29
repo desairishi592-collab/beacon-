@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import type { TeamActionState } from './actions'
+import type { TeamActionState } from '@/lib/team-invites'
 
 const initialState: TeamActionState = undefined
 

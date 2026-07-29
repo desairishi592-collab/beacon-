@@ -33,7 +33,12 @@ export function DashboardNav({
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/check-in', label: 'Check-in' },
           { href: '/dashboard/check-in/history', label: 'History' },
-          ...(isTeamAdmin ? [{ href: '/dashboard/team', label: 'Team' }] : []),
+          ...(isTeamAdmin
+            ? [
+                { href: '/dashboard/team', label: 'Team' },
+                { href: '/dashboard/organization', label: 'Organization' },
+              ]
+            : []),
           { href: '/dashboard/settings', label: 'Settings' },
         ]
       : [
@@ -41,7 +46,12 @@ export function DashboardNav({
           { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
           { href: '/dashboard/alerts', label: 'Alerts', badge: unreadAlertCount },
-          ...(isTeamAdmin ? [{ href: '/dashboard/team', label: 'Team' }] : []),
+          ...(isTeamAdmin
+            ? [
+                { href: '/dashboard/team', label: 'Team' },
+                { href: '/dashboard/organization', label: 'Organization' },
+              ]
+            : []),
           { href: '/dashboard/settings', label: 'Settings' },
         ]
 
