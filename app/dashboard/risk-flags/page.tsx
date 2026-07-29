@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
 import { EmptyState, RiskFlagsList } from './risk-flags-list'
+import { DownloadRiskFlagsReportButton } from './download-risk-flags-report-button'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -77,7 +78,13 @@ export default async function RiskFlagsPage() {
             </div>
           </div>
 
-          <RiskFlagsList flags={flags ?? []} />
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Flags</h2>
+              {flags && flags.length > 0 && <DownloadRiskFlagsReportButton flags={flags} />}
+            </div>
+            <RiskFlagsList flags={flags ?? []} />
+          </div>
         </>
       )}
     </div>
