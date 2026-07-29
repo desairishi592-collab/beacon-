@@ -262,6 +262,29 @@ function Sparkline({ values }: { values: number[] }) {
   )
 }
 
+function snapshotsToCsv(snapshots: FinancialSnapshot[]) {
+  const header = ['Date', 'Revenue', 'Expenses', 'Operating Income', 'Cash Balance']
+  const rows = snapshots.map((s) => [
+    s.period_end,
+    s.total_revenue,
+    s.total_expenses,
+    s.operating_income,
+    s.cash_balance,
+  ])
+  return [header, ...rows].map((row) => row.join(',')).join('\n')
+}
+
+function downloadFinancialReport(snapshots: FinancialSnapshot[]) {
+  const csv = snapshotsToCsv(snapshots)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `financial-report-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function delta(current: number, prior: number | undefined) {
   if (prior === undefined || prior === 0) return null
   return ((current - prior) / Math.abs(prior)) * 100
@@ -356,14 +379,23 @@ export function FinancialTrends({ snapshots }: { snapshots: FinancialSnapshot[] 
               Last {snapshots.length} synced months
             </p>
           </div>
-          <ul className="flex gap-4">
-            {SERIES.map((series) => (
-              <li key={series.key} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <span className="inline-block h-0.5 w-3" style={{ backgroundColor: series.color }} />
-                {series.label}
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center gap-4">
+            <ul className="flex gap-4">
+              {SERIES.map((series) => (
+                <li key={series.key} className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="inline-block h-0.5 w-3" style={{ backgroundColor: series.color }} />
+                  {series.label}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              onClick={() => downloadFinancialReport(snapshots)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800"
+            >
+              Download report
+            </button>
+          </div>
         </div>
 
         <div className="mt-4">
