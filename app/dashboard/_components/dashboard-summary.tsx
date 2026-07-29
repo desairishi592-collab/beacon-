@@ -1,5 +1,10 @@
 import type { CurrentSession } from '@/lib/current-user'
-import { getDashboardSummary, type OverallStatus, type RiskFlagCounts } from '@/lib/dashboard/summary'
+import {
+  getDashboardSummary,
+  type OverallStatus,
+  type RiskFlagCounts,
+  type UrgentIndicator,
+} from '@/lib/dashboard/summary'
 import type { RiskSeverity } from '@/lib/supabase/types'
 
 const SEVERITY_ORDER: RiskSeverity[] = ['critical', 'high', 'medium', 'low']
@@ -51,6 +56,65 @@ function daysSince(isoDate: string | null): number | null {
   if (!isoDate) return null
   const ms = Date.now() - new Date(isoDate).getTime()
   return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)))
+}
+
+// months of cash runway -> a human-readable "about N days/months" string.
+// 30.4368 matches AVG_DAYS_PER_MONTH in lib/risk-engine/signals.ts.
+function formatRunway(months: number): string {
+  if (months <= 0) return 'no cash cushion left'
+  if (months < 1) {
+    const days = Math.round(months * 30.4368)
+    return `about ${days} day${days === 1 ? '' : 's'} of cash left`
+  }
+  return `about ${months.toFixed(1)} month${months === 1 ? '' : 's'} of cash left`
+}
+
+// Red for cash runway critical (matches the "critical" severity treatment
+// elsewhere on the dashboard), amber for check-in overdue (a softer,
+// reminder-level urgency, matching the "needs attention" status color).
+const URGENT_CLASSES: Record<UrgentIndicator['kind'], { container: string; title: string; body: string }> = {
+  cash_runway_critical: {
+    container: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950',
+    title: 'text-red-800 dark:text-red-300',
+    body: 'text-red-700 dark:text-red-400',
+  },
+  check_in_overdue: {
+    container: 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950',
+    title: 'text-amber-800 dark:text-amber-300',
+    body: 'text-amber-700 dark:text-amber-400',
+  },
+}
+
+const URGENT_LABEL: Record<UrgentIndicator['kind'], string> = {
+  cash_runway_critical: 'Cash runway critical',
+  check_in_overdue: 'Check-in overdue',
+}
+
+function UrgentBanner({
+  indicator,
+  lastActivityAt,
+}: {
+  indicator: UrgentIndicator
+  lastActivityAt: string | null
+}) {
+  const classes = URGENT_CLASSES[indicator.kind]
+
+  const message =
+    indicator.kind === 'cash_runway_critical'
+      ? `${indicator.title} — ${formatRunway(indicator.runwayMonths)} at the current burn rate.`
+      : (() => {
+          const days = daysSince(lastActivityAt)
+          return days === null
+            ? "No check-in has been submitted yet."
+            : `It's been ${days} day${days === 1 ? '' : 's'} since the last check-in.`
+        })()
+
+  return (
+    <div role="alert" className={`mb-3 rounded-lg border p-4 ${classes.container}`}>
+      <p className={`text-sm font-semibold ${classes.title}`}>{URGENT_LABEL[indicator.kind]}</p>
+      <p className={`mt-1 text-sm ${classes.body}`}>{message}</p>
+    </div>
+  )
 }
 
 function SummaryTile({ label, children }: { label: string; children: React.ReactNode }) {
@@ -117,13 +181,18 @@ export async function DashboardSummary({
   const summary = await getDashboardSummary(session, isFinance)
 
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <OverallStatusTile status={summary.overallStatus} />
-      <RiskFlagCountsTile counts={summary.riskFlagCounts} />
-      <LastActivityTile
-        lastActivityAt={summary.lastActivityAt}
-        lastActivityLabel={summary.lastActivityLabel}
-      />
+    <div className="mt-6">
+      {summary.urgentIndicator && (
+        <UrgentBanner indicator={summary.urgentIndicator} lastActivityAt={summary.lastActivityAt} />
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <OverallStatusTile status={summary.overallStatus} />
+        <RiskFlagCountsTile counts={summary.riskFlagCounts} />
+        <LastActivityTile
+          lastActivityAt={summary.lastActivityAt}
+          lastActivityLabel={summary.lastActivityLabel}
+        />
+      </div>
     </div>
   )
 }
