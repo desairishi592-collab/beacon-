@@ -36,6 +36,16 @@ export type ManualCheckin = {
   created_at: string
 }
 
+export type ScheduleUpload = {
+  id: string
+  profile_id: string
+  filename: string
+  row_count: number
+  columns: string[]
+  preview_rows: Record<string, string>[]
+  created_at: string
+}
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '13'
@@ -79,6 +89,24 @@ export type Database = {
         Update: Partial<{
           responses: Record<string, number>
           notes: string | null
+        }>
+        Relationships: []
+      }
+      schedule_uploads: {
+        Row: ScheduleUpload
+        Insert: {
+          id?: string
+          profile_id: string
+          filename: string
+          row_count: number
+          columns: string[]
+          preview_rows?: Record<string, string>[]
+        }
+        Update: Partial<{
+          filename: string
+          row_count: number
+          columns: string[]
+          preview_rows: Record<string, string>[]
         }>
         Relationships: []
       }

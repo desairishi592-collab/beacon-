@@ -10,6 +10,7 @@ export function DashboardNav({ isTeamAdmin = false }: { isTeamAdmin?: boolean })
     { href: '/dashboard', label: 'Home' },
     { href: '/dashboard/check-in', label: 'Check-in' },
     { href: '/dashboard/check-in/history', label: 'History' },
+    { href: '/dashboard/integrations', label: 'Integrations' },
     ...(isTeamAdmin
       ? [
           { href: '/dashboard/team', label: 'Team' },
