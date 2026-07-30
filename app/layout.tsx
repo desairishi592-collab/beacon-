@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Beacon",
-  description: "Risk monitoring for medical middle managers.",
+  description: "Risk monitoring for medical teams.",
 };
 
 export default function RootLayout({

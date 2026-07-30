@@ -10,12 +10,13 @@ export default async function SettingsPage() {
   if (!session) redirect('/login')
   const { userId, db } = session
 
-  const { data: profile } = await db
+  const { data: profile, error } = await db
     .from('profiles')
     .select('name, role, team_size, team_role, weekly_digest_enabled, check_in_reminder_enabled')
     .eq('id', userId)
     .maybeSingle()
 
+  if (error) throw error
   if (!profile) redirect('/onboarding')
 
   const isAdmin = profile.team_role === 'admin'

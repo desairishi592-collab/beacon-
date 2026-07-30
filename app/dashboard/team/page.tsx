@@ -57,7 +57,11 @@ export default async function TeamPage() {
         <div className="rounded-lg border border-dashed border-neutral-300 p-12 text-center dark:border-neutral-700">
           <p className="text-neutral-500 dark:text-neutral-400">No team members yet.</p>
           <p className="mt-1 text-sm text-neutral-400 dark:text-neutral-600">
-            Invite teammates from Settings to see their check-ins here.
+            Invite teammates from{' '}
+            <a href="/dashboard/organization" className="underline">
+              Organization
+            </a>{' '}
+            to see their check-ins here.
           </p>
         </div>
       ) : (
