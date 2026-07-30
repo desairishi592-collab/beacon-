@@ -4,6 +4,7 @@ import type { Database, ScheduleRiskFlag } from '@/lib/supabase/types'
 import { normalizeRows } from '@/lib/schedule-uploads/normalize'
 import type { ScheduleConcept } from '@/lib/schedule-uploads/column-mapping'
 import { computeScheduleRiskSignals } from './signals'
+import { explainScheduleRecommendations } from './explain'
 
 // Runs the full risk analysis pipeline for one schedule_uploads row:
 // normalize its rows using the confirmed column mapping, compute risk
@@ -28,10 +29,12 @@ export async function analyzeScheduleUpload(
 
   if (signals.length === 0) return []
 
+  const explained = await explainScheduleRecommendations(signals)
+
   const { data: inserted, error: insertError } = await db
     .from('schedule_risk_flags')
     .insert(
-      signals.map((signal) => ({
+      explained.map((signal) => ({
         upload_id: uploadId,
         profile_id: profileId,
         signal_type: signal.type,

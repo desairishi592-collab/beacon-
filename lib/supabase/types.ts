@@ -5,6 +5,7 @@ export type TeamRole = 'admin' | 'member'
 export type Profile = {
   id: string
   name: string
+  company_name: string
   role: string
   field: Field
   team_size: number
@@ -12,6 +13,7 @@ export type Profile = {
   team_role: TeamRole
   weekly_digest_enabled: boolean
   check_in_reminder_enabled: boolean
+  wants_data_integration: boolean | null
   created_at: string
   updated_at: string
 }
@@ -133,6 +135,27 @@ export type ScheduleRiskFlag = {
   created_at: string
 }
 
+// Check-in-based risk flags (Medicine/Engineering/Other, computed from
+// manual_checkins). A single signal_type — any check-in question rated
+// moderate concern or worse triggers a flag, distinguished by metric_label.
+export type ManualCheckinRiskSignalType = 'checkin_concern'
+
+export type ManualCheckinRiskFlag = {
+  id: string
+  checkin_id: string
+  profile_id: string
+  signal_type: ManualCheckinRiskSignalType
+  severity: RiskSeverity
+  metric_value: number
+  threshold_value: number | null
+  metric_label: string
+  title: string
+  explanation: string
+  recommendation: string
+  raw_signal: Record<string, unknown>
+  created_at: string
+}
+
 export type QuickbooksConnection = {
   id: string
   profile_id: string
@@ -172,6 +195,7 @@ export type Database = {
         Insert: {
           id: string
           name: string
+          company_name: string
           role: string
           field: Field
           team_size: number
@@ -179,9 +203,11 @@ export type Database = {
           team_role?: TeamRole
           weekly_digest_enabled?: boolean
           check_in_reminder_enabled?: boolean
+          wants_data_integration?: boolean | null
         }
         Update: Partial<{
           name: string
+          company_name: string
           role: string
           field: Field
           team_size: number
@@ -189,6 +215,7 @@ export type Database = {
           team_role: TeamRole
           weekly_digest_enabled: boolean
           check_in_reminder_enabled: boolean
+          wants_data_integration: boolean | null
         }>
         Relationships: []
       }
@@ -305,6 +332,27 @@ export type Database = {
           upload_id: string
           profile_id: string
           signal_type: ScheduleRiskSignalType
+          severity: RiskSeverity
+          metric_value: number
+          threshold_value?: number | null
+          metric_label: string
+          title: string
+          explanation: string
+          recommendation: string
+          raw_signal?: Record<string, unknown>
+        }
+        Update: Partial<{
+          severity: RiskSeverity
+        }>
+        Relationships: []
+      }
+      manual_checkin_risk_flags: {
+        Row: ManualCheckinRiskFlag
+        Insert: {
+          id?: string
+          checkin_id: string
+          profile_id: string
+          signal_type: ManualCheckinRiskSignalType
           severity: RiskSeverity
           metric_value: number
           threshold_value?: number | null

@@ -1,5 +1,5 @@
 import 'server-only'
-import { groqJsonCompletion } from '@/lib/groq/client'
+import { chainJsonCompletion } from '@/lib/ai/chain'
 import type { FinancialSnapshot } from '@/lib/supabase/types'
 import type { ExplainedRiskSignal, RiskSignal } from './types'
 
@@ -91,7 +91,7 @@ export async function explainRiskSignals(
 ): Promise<ExplainedRiskSignal[]> {
   if (signals.length === 0) return []
 
-  const parsed = await groqJsonCompletion<ExplainOutput>({
+  const parsed = await chainJsonCompletion<ExplainOutput>({
     system: SYSTEM_PROMPT,
     user: buildUserMessage(snapshot, signals),
     schemaName: 'risk_flag_explanations',

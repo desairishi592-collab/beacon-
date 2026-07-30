@@ -1,6 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+
+const { explainScheduleRecommendations } = vi.hoisted(() => ({
+  explainScheduleRecommendations: vi.fn(),
+}))
+vi.mock('./explain', () => ({ explainScheduleRecommendations }))
 
 import { analyzeScheduleUpload } from './analyze'
 
@@ -24,6 +29,10 @@ function makeDb({
 describe('analyzeScheduleUpload', () => {
   const mapping = { employee: 'Name', date: 'Date', role: 'Role' } as const
 
+  beforeEach(() => {
+    explainScheduleRecommendations.mockReset().mockImplementation((signals) => Promise.resolve(signals))
+  })
+
   it('deletes existing flags for the upload before computing new ones', async () => {
     const db = makeDb()
     await analyzeScheduleUpload(db as never, 'upload-1', 'profile-1', [], mapping)
@@ -44,6 +53,7 @@ describe('analyzeScheduleUpload', () => {
 
     expect(result).toEqual([])
     expect(db.insert).not.toHaveBeenCalled()
+    expect(explainScheduleRecommendations).not.toHaveBeenCalled()
   })
 
   it('inserts computed flags scoped to the upload and profile', async () => {
@@ -65,6 +75,25 @@ describe('analyzeScheduleUpload', () => {
         profile_id: 'profile-1',
         signal_type: 'single_point_of_failure',
       }),
+    ])
+  })
+
+  it('persists the AI-generated recommendation in place of the deterministic one', async () => {
+    const db = makeDb({ inserted: [{ id: 'flag-1' }] })
+    explainScheduleRecommendations.mockImplementation((signals) =>
+      Promise.resolve(signals.map((s: { recommendation: string }) => ({ ...s, recommendation: 'AI fix' })))
+    )
+
+    const rows = Array.from({ length: 5 }, (_, i) => ({
+      Name: 'Jane Doe',
+      Date: `2026-07-0${i + 1}`,
+      Role: 'Charge Nurse',
+    }))
+
+    await analyzeScheduleUpload(db as never, 'upload-1', 'profile-1', rows, mapping)
+
+    expect(db.insert).toHaveBeenCalledWith([
+      expect.objectContaining({ recommendation: 'AI fix' }),
     ])
   })
 

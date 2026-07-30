@@ -5,6 +5,7 @@ import { getCurrentSession } from '@/lib/current-user'
 import { getCheckInQuestions, isManualCheckinField, RATING_SCALE } from '@/lib/check-ins/questions'
 import { notifySevereCheckin } from '@/lib/notifications/check-in-email'
 import { getRequestOrigin } from '@/lib/request-origin'
+import { analyzeCheckin } from '@/lib/checkin-risk-engine/analyze'
 
 export type CheckInState = { error: string } | { success: true } | undefined
 
@@ -38,16 +39,22 @@ export async function submitCheckIn(
 
   const notes = String(formData.get('notes') ?? '').trim()
 
-  const { error } = await db.from('manual_checkins').insert({
-    profile_id: userId,
-    field: profile.field,
-    responses,
-    notes: notes || null,
-  })
+  const { data: checkin, error } = await db
+    .from('manual_checkins')
+    .insert({
+      profile_id: userId,
+      field: profile.field,
+      responses,
+      notes: notes || null,
+    })
+    .select('id')
+    .single()
 
   if (error) {
     return { error: error.message }
   }
+
+  await analyzeCheckin(db, checkin.id, userId, profile.field, responses, notes || null, questions)
 
   await notifySevereCheckin(
     { profileId: userId, field: profile.field, responses, notes: notes || null },
@@ -55,6 +62,7 @@ export async function submitCheckIn(
   )
 
   revalidatePath('/dashboard/check-in')
+  revalidatePath('/dashboard/risk-flags')
   revalidatePath('/dashboard')
   return { success: true }
 }

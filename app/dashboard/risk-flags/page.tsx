@@ -9,6 +9,10 @@ import {
   EmptyState as ScheduleEmptyState,
   RiskFlagsSection as ScheduleRiskFlagsSection,
 } from './schedule-risk-flags-list'
+import {
+  EmptyState as CheckInEmptyState,
+  RiskFlagsSection as CheckInRiskFlagsSection,
+} from './checkin-risk-flags-list'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -92,6 +96,41 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
   )
 }
 
+async function CheckInRiskFlags({ userId, db }: { userId: string; db: SupabaseClient<Database> }) {
+  const { data: latestCheckin } = await db
+    .from('manual_checkins')
+    .select('id')
+    .eq('profile_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!latestCheckin) {
+    return (
+      <CheckInEmptyState
+        title="Submit a check-in to see check-in flags."
+        description="Beacon analyzes your periodic check-in answers for concerns rated moderate or worse."
+        cta={
+          <Link
+            href="/dashboard/check-in"
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            Go to check-in
+          </Link>
+        }
+      />
+    )
+  }
+
+  const { data: flags } = await db
+    .from('manual_checkin_risk_flags')
+    .select('*')
+    .eq('profile_id', userId)
+    .order('created_at', { ascending: false })
+
+  return <CheckInRiskFlagsSection flags={flags ?? []} />
+}
+
 async function FinancialRiskFlags({ userId, db }: { userId: string; db: SupabaseClient<Database> }) {
   const { data: snapshot } = await db
     .from('financial_snapshots')
@@ -155,13 +194,22 @@ export default async function RiskFlagsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Risk Flags</h1>
         <p className="mt-1 text-neutral-500 dark:text-neutral-400">
           {showCheckInPath
-            ? 'Staffing and coverage signals computed from your most recent schedule upload.'
+            ? 'Staffing and coverage signals from your most recent schedule upload, plus concerns flagged from your check-ins.'
             : 'Signals from your most recent financial snapshot that crossed a risk threshold.'}
         </p>
       </div>
 
       {showCheckInPath ? (
-        <ScheduleRiskFlags userId={userId} db={db} />
+        <div className="space-y-8">
+          <section>
+            <h2 className="text-lg font-medium tracking-tight">Schedule</h2>
+            <ScheduleRiskFlags userId={userId} db={db} />
+          </section>
+          <section>
+            <h2 className="text-lg font-medium tracking-tight">Check-ins</h2>
+            <CheckInRiskFlags userId={userId} db={db} />
+          </section>
+        </div>
       ) : (
         <FinancialRiskFlags userId={userId} db={db} />
       )}
