@@ -25,7 +25,8 @@ function makeFormData(fields: Record<string, string>) {
 function validFields(overrides: Record<string, string> = {}) {
   return {
     name: 'Ada Lovelace',
-    role: 'Charge Nurse',
+    role: 'Founder',
+    field: 'engineering',
     team_size: '5',
     ...overrides,
   }
@@ -52,8 +53,8 @@ describe('completeOnboarding', () => {
     expect(upsert).toHaveBeenCalledWith({
       id: 'user-1',
       name: 'Ada Lovelace',
-      role: 'Charge Nurse',
-      field: 'medicine',
+      role: 'Founder',
+      field: 'engineering',
       team_size: 5,
     })
   })
@@ -102,6 +103,24 @@ describe('completeOnboarding', () => {
     expect(result?.error).toBe('Team size must be a whole number of at least 1.')
     expect(from).not.toHaveBeenCalled()
   })
+
+  it('rejects a missing field value before hitting the DB', async () => {
+    const formData = makeFormData(validFields({ field: '' }))
+
+    const result = await completeOnboarding(undefined, formData)
+
+    expect(result?.error).toBe('Please select a field.')
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('rejects a field value that is not one of finance/engineering/medicine/other before hitting the DB', async () => {
+    const formData = makeFormData(validFields({ field: 'marketing' }))
+
+    const result = await completeOnboarding(undefined, formData)
+
+    expect(result?.error).toBe('Please select a field.')
+    expect(from).not.toHaveBeenCalled()
+  })
 })
 
 describe('completeOnboarding with an invite', () => {
@@ -129,8 +148,8 @@ describe('completeOnboarding with an invite', () => {
     expect(upsert).toHaveBeenCalledWith({
       id: 'user-1',
       name: 'Ada Lovelace',
-      role: 'Charge Nurse',
-      field: 'medicine',
+      role: 'Founder',
+      field: 'engineering',
       team_size: 5,
       team_id: 'team-abc',
       team_role: 'member',
@@ -157,8 +176,8 @@ describe('completeOnboarding with an invite', () => {
     expect(upsert).toHaveBeenCalledWith({
       id: 'user-1',
       name: 'Ada Lovelace',
-      role: 'Charge Nurse',
-      field: 'medicine',
+      role: 'Founder',
+      field: 'engineering',
       team_size: 5,
     })
   })

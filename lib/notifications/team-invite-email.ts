@@ -8,11 +8,11 @@ type TeamInviteEmail = {
   origin: string
 }
 
-// Unlike the check-in notifications, the invite email is the whole point
-// of the action that triggers it — a pending invite row with no email
-// delivered is useless — so this throws on failure instead of swallowing
-// it. The caller (inviteTeamMember) rolls back the invite row and surfaces
-// an error when this throws.
+// Unlike the check-in/risk-flag notifications, the invite email is the
+// whole point of the action that triggers it — a pending invite row with no
+// email delivered is useless — so this throws on failure instead of
+// swallowing it. The caller (inviteTeamMember) rolls back the invite row
+// and surfaces an error when this throws.
 export async function sendTeamInviteEmail({
   inviteId,
   inviteeEmail,
@@ -43,7 +43,7 @@ export async function sendTeamInviteEmail({
           type: 'text/html',
           value: `<div style="font-family:sans-serif;color:#111;max-width:560px;">
             <h2 style="margin:0 0 12px;">${escapeHtml(inviterName)} invited you to Beacon</h2>
-            <p style="margin:0 0 20px;color:#555;font-size:14px;">Beacon helps managers track team risk. Create your account to join ${escapeHtml(inviterName)}'s team.</p>
+            <p style="margin:0 0 20px;color:#555;font-size:14px;">Beacon helps managers track team and financial risk. Create your account to join ${escapeHtml(inviterName)}'s team.</p>
             <a href="${signupUrl.toString()}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:14px;">Accept invite</a>
           </div>`,
         },

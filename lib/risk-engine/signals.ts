@@ -1,105 +1,230 @@
-import type { NormalizedShift } from '@/lib/schedule-uploads/normalize'
-import type { RiskSignal } from './types'
+import type { FinancialSnapshot } from '@/lib/supabase/types'
+import type { RiskSignal, SnapshotPair } from './types'
 
-const MINUTES_PER_DAY = 24 * 60
+const AVG_DAYS_PER_MONTH = 30.4368
 
-// Understaffing: a role's headcount on a given day compared to that role's
-// own typical (median) headcount across the dataset.
-const UNDERSTAFFED_CRITICAL_RATIO = 0.25
-const UNDERSTAFFED_HIGH_RATIO = 0.5
-const UNDERSTAFFED_MEDIUM_RATIO = 0.75
-// Need at least a few days of history for "typical" to mean anything.
-const MIN_DATES_FOR_BASELINE = 3
+// Runway thresholds, in months of cash left at the current burn rate.
+const RUNWAY_CRITICAL_MONTHS = 1
+const RUNWAY_HIGH_MONTHS = 3
+const RUNWAY_MEDIUM_MONTHS = 6
 
-// Single point of failure: total shifts covered by the sole employee who
-// ever fills a role.
-const SPOF_CRITICAL_SHIFTS = 10
-const SPOF_HIGH_SHIFTS = 5
-const SPOF_MIN_SHIFTS = 3
+// Burn acceleration thresholds, as period-over-period growth in monthly burn.
+const BURN_GROWTH_CRITICAL = 0.5
+const BURN_GROWTH_HIGH = 0.3
+const BURN_GROWTH_MEDIUM = 0.15
 
-// Excessive consecutive shifts: longest run of consecutive calendar days.
-const CONSECUTIVE_CRITICAL_DAYS = 10
-const CONSECUTIVE_HIGH_DAYS = 8
-const CONSECUTIVE_MEDIUM_DAYS = 6
+// DSCR thresholds. 1.25x is the coverage ratio commonly required by lending
+// covenants; below 1.0x means operating income can't cover debt service.
+const DSCR_MEDIUM = 1.25
+const DSCR_HIGH = 1.0
+const DSCR_CRITICAL = 0.75
 
-// No rest violation: gap between one shift's end and the employee's next
-// shift's start.
-const REST_CRITICAL_MINUTES = 4 * 60
-const REST_HIGH_MINUTES = 6 * 60
-const REST_MEDIUM_MINUTES = 8 * 60
+// Expense concentration thresholds, as a single category's share of total expenses.
+const CONCENTRATION_MEDIUM = 0.4
+const CONCENTRATION_HIGH = 0.55
+const CONCENTRATION_CRITICAL = 0.7
 
-// Coverage gap / call-outs, matched against a status column's free text.
-const ABSENCE_STATUS_KEYWORDS = [
-  'callout',
-  'call out',
-  'no show',
-  'noshow',
-  'sick',
-  'cancelled',
-  'canceled',
-  'open',
-  'unfilled',
-  'vacant',
-  'uncovered',
-]
-const SAME_DAY_CALLOUT_THRESHOLD = 2
-const EMPLOYEE_CALLOUT_THRESHOLD = 3
+// Period-over-period change thresholds for the generic anomaly detector.
+const REVENUE_DROP_HIGH = 0.25
+const REVENUE_DROP_CRITICAL = 0.4
+const EXPENSE_SPIKE_MEDIUM = 0.3
+const EXPENSE_SPIKE_HIGH = 0.5
+const CASH_DROP_MEDIUM = 0.3
+const CASH_DROP_HIGH = 0.5
+const CATEGORY_SPIKE_THRESHOLD = 0.6
+// A category must be at least this share of total expenses to be worth
+// flagging a spike in — otherwise tiny categories generate noisy anomalies.
+const CATEGORY_MATERIALITY_SHARE = 0.05
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
+function periodMonths(snapshot: FinancialSnapshot): number {
+  const start = new Date(snapshot.period_start).getTime()
+  const end = new Date(snapshot.period_end).getTime()
+  const days = (end - start) / (1000 * 60 * 60 * 24)
+  return Math.max(days / AVG_DAYS_PER_MONTH, 1 / AVG_DAYS_PER_MONTH)
 }
 
-function dayNumber(date: string): number {
-  return Math.round(new Date(`${date}T00:00:00Z`).getTime() / (1000 * 60 * 60 * 24))
+function monthlyBurn(snapshot: FinancialSnapshot): number {
+  return (snapshot.total_expenses - snapshot.total_revenue) / periodMonths(snapshot)
 }
 
-function severityForRatio(ratio: number): RiskSignal['severity'] | null {
-  if (ratio <= UNDERSTAFFED_CRITICAL_RATIO) return 'critical'
-  if (ratio <= UNDERSTAFFED_HIGH_RATIO) return 'high'
-  if (ratio <= UNDERSTAFFED_MEDIUM_RATIO) return 'medium'
-  return null
+function pctChange(current: number, prior: number): number | null {
+  if (prior === 0) return null
+  return (current - prior) / Math.abs(prior)
 }
 
-function computeUnderstaffedShiftSignals(shifts: NormalizedShift[]): RiskSignal[] {
-  const withRole = shifts.filter((s): s is NormalizedShift & { role: string } => s.role !== null)
-  if (withRole.length === 0) return []
+function computeCashRunwaySignal(current: FinancialSnapshot): RiskSignal | null {
+  const burn = monthlyBurn(current)
+  if (burn <= 0) return null // profitable or breakeven — no runway risk
 
-  // role -> date -> unique employees scheduled
-  const byRole = new Map<string, Map<string, Set<string>>>()
-  for (const shift of withRole) {
-    if (!byRole.has(shift.role)) byRole.set(shift.role, new Map())
-    const byDate = byRole.get(shift.role)!
-    if (!byDate.has(shift.date)) byDate.set(shift.date, new Set())
-    byDate.get(shift.date)!.add(shift.employee)
+  const runwayMonths = current.cash_balance / burn
+  const severity =
+    runwayMonths < RUNWAY_CRITICAL_MONTHS
+      ? 'critical'
+      : runwayMonths < RUNWAY_HIGH_MONTHS
+        ? 'high'
+        : runwayMonths < RUNWAY_MEDIUM_MONTHS
+          ? 'medium'
+          : null
+  if (!severity) return null
+
+  return {
+    type: 'cash_runway',
+    severity,
+    metricValue: runwayMonths,
+    thresholdValue: RUNWAY_MEDIUM_MONTHS,
+    metricLabel: 'cash_runway_months',
+    context: {
+      cash_balance: current.cash_balance,
+      monthly_burn: burn,
+    },
+  }
+}
+
+function computeBurnRateSignal(current: FinancialSnapshot, prior: FinancialSnapshot | null): RiskSignal | null {
+  const burn = monthlyBurn(current)
+  if (burn <= 0) return null // not currently burning cash
+
+  if (!prior) return null // no baseline to compare acceleration against
+  const priorBurn = monthlyBurn(prior)
+
+  if (priorBurn <= 0) {
+    // Flipped from profitable/breakeven to burning cash — worth flagging on
+    // its own, even without a meaningful percentage change to report.
+    return {
+      type: 'burn_rate',
+      severity: 'medium',
+      metricValue: burn,
+      thresholdValue: 0,
+      metricLabel: 'monthly_burn',
+      context: { monthly_burn: burn, prior_monthly_burn: priorBurn },
+    }
   }
 
+  const growth = (burn - priorBurn) / priorBurn
+  const severity =
+    growth >= BURN_GROWTH_CRITICAL
+      ? 'critical'
+      : growth >= BURN_GROWTH_HIGH
+        ? 'high'
+        : growth >= BURN_GROWTH_MEDIUM
+          ? 'medium'
+          : null
+  if (!severity) return null
+
+  return {
+    type: 'burn_rate',
+    severity,
+    metricValue: growth,
+    thresholdValue: BURN_GROWTH_MEDIUM,
+    metricLabel: 'monthly_burn_growth',
+    context: { monthly_burn: burn, prior_monthly_burn: priorBurn },
+  }
+}
+
+function computeDscrSignal(current: FinancialSnapshot): RiskSignal | null {
+  if (current.total_debt_service <= 0) return null // no debt obligations this period
+
+  const dscr = current.operating_income / current.total_debt_service
+  const severity =
+    dscr < DSCR_CRITICAL ? 'critical' : dscr < DSCR_HIGH ? 'high' : dscr < DSCR_MEDIUM ? 'medium' : null
+  if (!severity) return null
+
+  return {
+    type: 'dscr',
+    severity,
+    metricValue: dscr,
+    thresholdValue: DSCR_MEDIUM,
+    metricLabel: 'dscr',
+    context: {
+      operating_income: current.operating_income,
+      total_debt_service: current.total_debt_service,
+    },
+  }
+}
+
+function computeExpenseConcentrationSignal(current: FinancialSnapshot): RiskSignal | null {
+  const categories = Object.entries(current.expense_breakdown)
+  if (categories.length === 0 || current.total_expenses <= 0) return null
+
+  const [topCategory, topAmount] = categories.reduce((max, entry) => (entry[1] > max[1] ? entry : max))
+  const share = topAmount / current.total_expenses
+  const severity =
+    share >= CONCENTRATION_CRITICAL
+      ? 'critical'
+      : share >= CONCENTRATION_HIGH
+        ? 'high'
+        : share >= CONCENTRATION_MEDIUM
+          ? 'medium'
+          : null
+  if (!severity) return null
+
+  return {
+    type: 'expense_concentration',
+    severity,
+    metricValue: share,
+    thresholdValue: CONCENTRATION_MEDIUM,
+    metricLabel: `expense_concentration:${topCategory}`,
+    context: {
+      category: topCategory,
+      category_amount: topAmount,
+      total_expenses: current.total_expenses,
+    },
+  }
+}
+
+function computeAnomalySignals(current: FinancialSnapshot, prior: FinancialSnapshot | null): RiskSignal[] {
+  if (!prior) return []
   const signals: RiskSignal[] = []
 
-  for (const [role, byDate] of byRole) {
-    if (byDate.size < MIN_DATES_FOR_BASELINE) continue
+  const revenueChange = pctChange(current.total_revenue, prior.total_revenue)
+  if (revenueChange !== null && revenueChange <= -REVENUE_DROP_HIGH) {
+    signals.push({
+      type: 'anomaly',
+      severity: revenueChange <= -REVENUE_DROP_CRITICAL ? 'critical' : 'high',
+      metricValue: revenueChange,
+      thresholdValue: -REVENUE_DROP_HIGH,
+      metricLabel: 'anomaly:total_revenue',
+      context: { current: current.total_revenue, prior: prior.total_revenue },
+    })
+  }
 
-    const counts = [...byDate.values()].map((employees) => employees.size)
-    const typical = median(counts)
-    if (typical <= 0) continue
+  const expenseChange = pctChange(current.total_expenses, prior.total_expenses)
+  if (expenseChange !== null && expenseChange >= EXPENSE_SPIKE_MEDIUM) {
+    signals.push({
+      type: 'anomaly',
+      severity: expenseChange >= EXPENSE_SPIKE_HIGH ? 'high' : 'medium',
+      metricValue: expenseChange,
+      thresholdValue: EXPENSE_SPIKE_MEDIUM,
+      metricLabel: 'anomaly:total_expenses',
+      context: { current: current.total_expenses, prior: prior.total_expenses },
+    })
+  }
 
-    for (const [date, employees] of byDate) {
-      const count = employees.size
-      const ratio = count / typical
-      const severity = severityForRatio(ratio)
-      if (!severity) continue
+  const cashChange = pctChange(current.cash_balance, prior.cash_balance)
+  if (cashChange !== null && cashChange <= -CASH_DROP_MEDIUM) {
+    signals.push({
+      type: 'anomaly',
+      severity: cashChange <= -CASH_DROP_HIGH ? 'high' : 'medium',
+      metricValue: cashChange,
+      thresholdValue: -CASH_DROP_MEDIUM,
+      metricLabel: 'anomaly:cash_balance',
+      context: { current: current.cash_balance, prior: prior.cash_balance },
+    })
+  }
 
+  for (const [category, amount] of Object.entries(current.expense_breakdown)) {
+    if (current.total_expenses <= 0 || amount / current.total_expenses < CATEGORY_MATERIALITY_SHARE) continue
+    const priorAmount = prior.expense_breakdown[category]
+    if (priorAmount === undefined) continue
+    const change = pctChange(amount, priorAmount)
+    if (change !== null && change >= CATEGORY_SPIKE_THRESHOLD) {
       signals.push({
-        type: 'understaffed_shift',
-        severity,
-        metricValue: count,
-        thresholdValue: typical,
-        metricLabel: `understaffed_shift:${role}:${date}`,
-        title: `Understaffed ${role} coverage on ${date}`,
-        explanation: `Only ${count} ${role} ${count === 1 ? 'person was' : 'people were'} scheduled on ${date}, compared to a typical ${typical} for this role.`,
-        recommendation: `Review ${role} coverage for ${date} and consider adding backup or per-diem staff for shifts that fall well below the usual headcount.`,
-        context: { role, date, count, typical },
+        type: 'anomaly',
+        severity: 'medium',
+        metricValue: change,
+        thresholdValue: CATEGORY_SPIKE_THRESHOLD,
+        metricLabel: `anomaly:expense_breakdown.${category}`,
+        context: { category, current: amount, prior: priorAmount },
       })
     }
   }
@@ -107,229 +232,15 @@ function computeUnderstaffedShiftSignals(shifts: NormalizedShift[]): RiskSignal[
   return signals
 }
 
-function computeSingleServicePointOfFailureSignals(shifts: NormalizedShift[]): RiskSignal[] {
-  const withRole = shifts.filter((s): s is NormalizedShift & { role: string } => s.role !== null)
-  if (withRole.length === 0) return []
-
-  const byRole = new Map<string, { employees: Set<string>; shiftCount: number }>()
-  for (const shift of withRole) {
-    if (!byRole.has(shift.role)) byRole.set(shift.role, { employees: new Set(), shiftCount: 0 })
-    const entry = byRole.get(shift.role)!
-    entry.employees.add(shift.employee)
-    entry.shiftCount += 1
-  }
-
-  const signals: RiskSignal[] = []
-
-  for (const [role, { employees, shiftCount }] of byRole) {
-    if (employees.size !== 1 || shiftCount < SPOF_MIN_SHIFTS) continue
-    const [employee] = employees
-
-    const severity: RiskSignal['severity'] =
-      shiftCount >= SPOF_CRITICAL_SHIFTS ? 'critical' : shiftCount >= SPOF_HIGH_SHIFTS ? 'high' : 'medium'
-
-    signals.push({
-      type: 'single_point_of_failure',
-      severity,
-      metricValue: shiftCount,
-      thresholdValue: SPOF_MIN_SHIFTS,
-      metricLabel: `single_point_of_failure:${role}`,
-      title: `${role} coverage depends on one person`,
-      explanation: `${employee} is the only staff member scheduled for the ${role} role across ${shiftCount} shifts in this data.`,
-      recommendation: `Cross-train another team member to cover ${role} so a single absence doesn't leave it uncovered.`,
-      context: { role, employee, shiftCount },
-    })
-  }
-
-  return signals
-}
-
-function severityForStreak(days: number): RiskSignal['severity'] | null {
-  if (days >= CONSECUTIVE_CRITICAL_DAYS) return 'critical'
-  if (days >= CONSECUTIVE_HIGH_DAYS) return 'high'
-  if (days >= CONSECUTIVE_MEDIUM_DAYS) return 'medium'
-  return null
-}
-
-function longestConsecutiveStreak(sortedDayNumbers: number[]): number {
-  let longest = 1
-  let current = 1
-  for (let i = 1; i < sortedDayNumbers.length; i++) {
-    if (sortedDayNumbers[i] === sortedDayNumbers[i - 1] + 1) {
-      current += 1
-    } else if (sortedDayNumbers[i] !== sortedDayNumbers[i - 1]) {
-      current = 1
-    }
-    longest = Math.max(longest, current)
-  }
-  return longest
-}
-
-function computeExcessiveConsecutiveShiftsSignals(shifts: NormalizedShift[]): RiskSignal[] {
-  const byEmployee = new Map<string, Set<number>>()
-  for (const shift of shifts) {
-    if (!byEmployee.has(shift.employee)) byEmployee.set(shift.employee, new Set())
-    byEmployee.get(shift.employee)!.add(dayNumber(shift.date))
-  }
-
-  const signals: RiskSignal[] = []
-
-  for (const [employee, days] of byEmployee) {
-    const sorted = [...days].sort((a, b) => a - b)
-    const streak = longestConsecutiveStreak(sorted)
-    const severity = severityForStreak(streak)
-    if (!severity) continue
-
-    signals.push({
-      type: 'excessive_consecutive_shifts',
-      severity,
-      metricValue: streak,
-      thresholdValue: CONSECUTIVE_MEDIUM_DAYS,
-      metricLabel: `excessive_consecutive_shifts:${employee}`,
-      title: `${employee} scheduled ${streak} consecutive days`,
-      explanation: `${employee} is scheduled for ${streak} consecutive calendar days without a day off in this data.`,
-      recommendation: `Review ${employee}'s schedule and insert a rest day — extended runs without a day off raise fatigue and burnout risk.`,
-      context: { employee, streak },
-    })
-  }
-
-  return signals
-}
-
-function severityForRestGap(minutes: number): RiskSignal['severity'] | null {
-  if (minutes < REST_CRITICAL_MINUTES) return 'critical'
-  if (minutes < REST_HIGH_MINUTES) return 'high'
-  if (minutes < REST_MEDIUM_MINUTES) return 'medium'
-  return null
-}
-
-function computeNoRestViolationSignals(shifts: NormalizedShift[]): RiskSignal[] {
-  const timed = shifts.filter(
-    (s): s is NormalizedShift & { startMinutes: number; endMinutes: number } =>
-      s.startMinutes !== null && s.endMinutes !== null
-  )
-  if (timed.length === 0) return []
-
-  const byEmployee = new Map<string, typeof timed>()
-  for (const shift of timed) {
-    if (!byEmployee.has(shift.employee)) byEmployee.set(shift.employee, [])
-    byEmployee.get(shift.employee)!.push(shift)
-  }
-
-  const signals: RiskSignal[] = []
-
-  for (const [employee, employeeShifts] of byEmployee) {
-    const withAbsoluteTimes = employeeShifts
-      .map((shift) => {
-        const startAbs = dayNumber(shift.date) * MINUTES_PER_DAY + shift.startMinutes
-        // Overnight shift: end time is earlier in the clock than start time.
-        const endAbs =
-          dayNumber(shift.date) * MINUTES_PER_DAY +
-          (shift.endMinutes <= shift.startMinutes ? shift.endMinutes + MINUTES_PER_DAY : shift.endMinutes)
-        return { ...shift, startAbs, endAbs }
-      })
-      .sort((a, b) => a.startAbs - b.startAbs)
-
-    let worstGap = Infinity
-    for (let i = 1; i < withAbsoluteTimes.length; i++) {
-      const gap = withAbsoluteTimes[i].startAbs - withAbsoluteTimes[i - 1].endAbs
-      if (gap >= 0 && gap < worstGap) worstGap = gap
-    }
-    if (worstGap === Infinity) continue
-
-    const severity = severityForRestGap(worstGap)
-    if (!severity) continue
-
-    const hours = Math.round((worstGap / 60) * 10) / 10
-
-    signals.push({
-      type: 'no_rest_violation',
-      severity,
-      metricValue: hours,
-      thresholdValue: REST_MEDIUM_MINUTES / 60,
-      metricLabel: `no_rest_violation:${employee}`,
-      title: `Insufficient rest between shifts for ${employee}`,
-      explanation: `${employee} has as little as ${hours} hour${hours === 1 ? '' : 's'} between the end of one shift and the start of the next.`,
-      recommendation: `Reschedule ${employee}'s shifts to allow at least ${REST_MEDIUM_MINUTES / 60} hours of rest between shifts.`,
-      context: { employee, restHours: hours },
-    })
-  }
-
-  return signals
-}
-
-function isAbsenceStatus(status: string): boolean {
-  const normalized = status.toLowerCase()
-  return ABSENCE_STATUS_KEYWORDS.some((keyword) => normalized.includes(keyword))
-}
-
-function severityForCount(count: number, thresholds: [number, number, number]): RiskSignal['severity'] | null {
-  const [medium, high, critical] = thresholds
-  if (count >= critical) return 'critical'
-  if (count >= high) return 'high'
-  if (count >= medium) return 'medium'
-  return null
-}
-
-function computeCoverageGapSignals(shifts: NormalizedShift[]): RiskSignal[] {
-  const absences = shifts.filter((s) => s.status !== null && isAbsenceStatus(s.status))
-  if (absences.length === 0) return []
-
-  const signals: RiskSignal[] = []
-
-  const byDate = new Map<string, number>()
-  for (const shift of absences) {
-    byDate.set(shift.date, (byDate.get(shift.date) ?? 0) + 1)
-  }
-  for (const [date, count] of byDate) {
-    const severity = severityForCount(count, [SAME_DAY_CALLOUT_THRESHOLD, 3, 4])
-    if (!severity) continue
-    signals.push({
-      type: 'coverage_gap',
-      severity,
-      metricValue: count,
-      thresholdValue: SAME_DAY_CALLOUT_THRESHOLD,
-      metricLabel: `coverage_gap:date:${date}`,
-      title: `Multiple coverage gaps on ${date}`,
-      explanation: `${count} shifts on ${date} were recorded as open, cancelled, or a call-out/no-show.`,
-      recommendation: `Confirm coverage for ${date} is filled and identify backup staff for short-notice gaps.`,
-      context: { date, count },
-    })
-  }
-
-  const byEmployee = new Map<string, number>()
-  for (const shift of absences) {
-    byEmployee.set(shift.employee, (byEmployee.get(shift.employee) ?? 0) + 1)
-  }
-  for (const [employee, count] of byEmployee) {
-    const severity = severityForCount(count, [EMPLOYEE_CALLOUT_THRESHOLD, 5, 7])
-    if (!severity) continue
-    signals.push({
-      type: 'coverage_gap',
-      severity,
-      metricValue: count,
-      thresholdValue: EMPLOYEE_CALLOUT_THRESHOLD,
-      metricLabel: `coverage_gap:employee:${employee}`,
-      title: `Recurring coverage gaps from ${employee}`,
-      explanation: `${employee} has ${count} shifts recorded as open, cancelled, or a call-out/no-show in this data.`,
-      recommendation: `Check in with ${employee} about recurring absences and line up dependable backup coverage.`,
-      context: { employee, count },
-    })
-  }
-
-  return signals
-}
-
-// Computes every flagged risk signal for a schedule upload's normalized
-// shifts. Only signals that cross a threshold are returned. Each detector
-// independently checks whether it has the fields it needs (role, status,
-// start/end times) and returns nothing if that data wasn't mapped.
-export function computeScheduleRiskSignals(shifts: NormalizedShift[]): RiskSignal[] {
+// Computes every flagged risk signal for a snapshot. Only signals that
+// cross a threshold are returned — this is the "flagging" step; plain-
+// language explanation happens separately (see lib/risk-engine/explain.ts).
+export function computeRiskSignals({ current, prior }: SnapshotPair): RiskSignal[] {
   return [
-    ...computeUnderstaffedShiftSignals(shifts),
-    ...computeSingleServicePointOfFailureSignals(shifts),
-    ...computeExcessiveConsecutiveShiftsSignals(shifts),
-    ...computeNoRestViolationSignals(shifts),
-    ...computeCoverageGapSignals(shifts),
-  ]
+    computeCashRunwaySignal(current),
+    computeBurnRateSignal(current, prior),
+    computeDscrSignal(current),
+    computeExpenseConcentrationSignal(current),
+    ...computeAnomalySignals(current, prior),
+  ].filter((signal): signal is RiskSignal => signal !== null)
 }

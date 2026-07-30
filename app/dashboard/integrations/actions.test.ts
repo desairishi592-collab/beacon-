@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { getCurrentSession, revalidatePath, analyzeScheduleUpload } = vi.hoisted(() => ({
+vi.mock('server-only', () => ({}))
+
+const { getCurrentSession, revalidatePath, analyzeScheduleUpload, createAdminClient } = vi.hoisted(() => ({
   getCurrentSession: vi.fn(),
   revalidatePath: vi.fn(),
   analyzeScheduleUpload: vi.fn(),
+  createAdminClient: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({ revalidatePath }))
 vi.mock('@/lib/current-user', () => ({ getCurrentSession }))
-vi.mock('@/lib/risk-engine/analyze', () => ({ analyzeScheduleUpload }))
+vi.mock('@/lib/schedule-risk-engine/analyze', () => ({ analyzeScheduleUpload }))
+vi.mock('@/lib/supabase/admin', () => ({ createAdminClient }))
 
-import { confirmScheduleMapping, uploadSchedule } from './actions'
+import { confirmScheduleMapping, disconnectQuickbooks, uploadSchedule } from './actions'
 
 function makeFormData(entries: Record<string, string | File | null>) {
   const formData = new FormData()
@@ -212,5 +216,50 @@ describe('confirmScheduleMapping', () => {
     const result = await confirmScheduleMapping(undefined, makeFormData({ uploadId: 'upload-1' }))
 
     expect(result).toEqual({ error: 'Not signed in.' })
+  })
+})
+
+describe('disconnectQuickbooks', () => {
+  let eq: ReturnType<typeof vi.fn>
+  let del: ReturnType<typeof vi.fn>
+  let from: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    eq = vi.fn().mockResolvedValue({ error: null })
+    del = vi.fn(() => ({ eq }))
+    from = vi.fn(() => ({ delete: del }))
+    createAdminClient.mockReturnValue({ from })
+    getCurrentSession.mockReset()
+    getCurrentSession.mockResolvedValue({ userId: 'user-1' })
+    revalidatePath.mockClear()
+  })
+
+  it('deletes the caller-owned connection row and reports success', async () => {
+    const result = await disconnectQuickbooks(undefined, new FormData())
+
+    expect(result).toEqual({ success: true })
+    expect(from).toHaveBeenCalledWith('quickbooks_connections')
+    expect(del).toHaveBeenCalled()
+    expect(eq).toHaveBeenCalledWith('profile_id', 'user-1')
+    expect(revalidatePath).toHaveBeenCalledWith('/dashboard/integrations')
+    expect(revalidatePath).toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('returns an error when not signed in', async () => {
+    getCurrentSession.mockResolvedValue(null)
+
+    const result = await disconnectQuickbooks(undefined, new FormData())
+
+    expect(result).toEqual({ error: 'Not signed in.' })
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('surfaces a DB error', async () => {
+    eq.mockResolvedValue({ error: { message: 'db is down' } })
+
+    const result = await disconnectQuickbooks(undefined, new FormData())
+
+    expect(result).toEqual({ error: 'db is down' })
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 })

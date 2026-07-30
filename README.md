@@ -1,6 +1,6 @@
 # Beacon
 
-Risk monitoring for medical teams.
+Risk monitoring for middle managers — starting with finance, more fields later.
 
 Stack: Next.js (App Router), Supabase (auth + Postgres), deployed on Vercel.
 
@@ -19,16 +19,16 @@ In the Supabase dashboard, under **Authentication → Providers**:
   `https://<your-project-ref>.supabase.co/auth/v1/callback`
 - Add `http://localhost:3000/auth/callback` (and your production URL's equivalent) to **Authentication → URL Configuration → Redirect URLs**.
 
-### 3. Run the database migrations
+### 3. Run the database migration
 
-Apply everything under `supabase/migrations/` in order — either paste each file into the Supabase SQL editor, or via the CLI:
+Apply `supabase/migrations/0001_profiles.sql` — either paste it into the Supabase SQL editor, or via the CLI:
 
 ```bash
 npx supabase link --project-ref <your-project-ref>
 npx supabase db push
 ```
 
-This creates the `profiles` table (name, role, field, team_size, keyed to `auth.users.id`) and `manual_checkins`, both with row-level security so users can only read/write their own rows.
+This creates the `profiles` table (name, role, field, team_size, keyed to `auth.users.id`) with row-level security so users can only read/write their own row.
 
 ### 4. Environment variables
 
@@ -36,7 +36,7 @@ This creates the `profiles` table (name, role, field, team_size, keyed to `auth.
 cp .env.local.example .env.local
 ```
 
-Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` from your Supabase project's API settings. `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL`/`CRON_SECRET` are optional — leave them blank if you don't need check-in/digest emails.
+Fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` from your Supabase project's API settings. The QuickBooks variables are placeholders for a follow-up — leave them blank for now.
 
 ### 5. Run it
 
@@ -48,5 +48,5 @@ npm run dev
 ## How auth + onboarding fit together
 
 - `proxy.ts` (Next.js 16's renamed `middleware.ts`) refreshes the Supabase session on every request and redirects: signed-out users hitting `/dashboard` or `/onboarding` go to `/login`; signed-in users without a `profiles` row go to `/onboarding`; signed-in users with a profile are kept out of `/login` and `/onboarding`.
-- `/onboarding` is a 3-step wizard (name → role → team size) with no skip option; the profile row is only written once all three are collected.
-- `/dashboard` shows the Medicine check-in overview: submit a weekly check-in, see severity trends and recurring risk areas, and an overall status summary.
+- `/onboarding` is a 4-step wizard (name → role → field → team size) with no skip option; the profile row is only written once all four are collected.
+- `/dashboard` is a placeholder shell — QuickBooks connect and risk flags land in a follow-up.

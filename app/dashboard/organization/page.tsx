@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
 import { severityTrend } from '@/lib/check-ins/trends'
 import { ConfirmActionButton } from '../_components/confirm-action-button'
 import { InviteTeamMemberButton } from './invite-team-member-button'
@@ -54,11 +55,30 @@ export default async function OrganizationPage() {
     }),
   )
 
-  // Overview rows for the CSV export below — each member's last check-in
-  // date and severity trend (same manual_checkins read already used
-  // per-teammate in app/dashboard/team/page.tsx).
+  // Overview rows for the CSV export below — finance members get their last
+  // QuickBooks sync (same admin-client read as financial-overview.tsx, since
+  // quickbooks_connections has no user-facing select policy), everyone else
+  // gets their last check-in date and severity trend (same manual_checkins
+  // read already used per-teammate in app/dashboard/team/page.tsx).
   const overviewRows: TeamOverviewRow[] = await Promise.all(
     (teamMembers ?? []).map(async (member): Promise<TeamOverviewRow> => {
+      if (!isManualCheckinField(member.field)) {
+        const adminDb = createAdminClient()
+        const { data: connection } = await adminDb
+          .from('quickbooks_connections')
+          .select('last_synced_at')
+          .eq('profile_id', member.id)
+          .maybeSingle()
+
+        return {
+          name: member.name,
+          role: member.role,
+          teamRole: member.team_role,
+          track: 'sync',
+          lastSyncAt: connection?.last_synced_at ?? null,
+        }
+      }
+
       const { data: checkins } = await db
         .from('manual_checkins')
         .select('*')
@@ -71,6 +91,7 @@ export default async function OrganizationPage() {
         name: member.name,
         role: member.role,
         teamRole: member.team_role,
+        track: 'check-in',
         lastCheckInAt: checkinsOldestFirst.at(-1)?.created_at ?? null,
         trendDelta: severityTrend(checkinsOldestFirst).delta,
       }

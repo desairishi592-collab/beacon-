@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { RiskFlag, RiskSeverity } from '@/lib/supabase/types'
+import { DownloadRiskFlagsReportButton } from './download-risk-flags-report-button'
 
 // Two-tier visual treatment over the four-value severity column:
 // critical/high read as "urgent" (red, warning icon), medium/low as
@@ -100,8 +101,8 @@ function RiskFlagsList({
   if (flags.length === 0) {
     return (
       <EmptyState
-        title="No risk flags for this schedule."
-        description="Nothing in your most recent upload crossed a risk threshold."
+        title="No risk flags for this period."
+        description="Nothing crossed a risk threshold in your latest synced financials."
       />
     )
   }
@@ -145,9 +146,16 @@ function RiskFlagsList({
 export function RiskFlagsSection({ flags }: { flags: RiskFlag[] }) {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
 
+  const filteredFlags = flags.filter(
+    (flag) => severityFilter === 'all' || flag.severity === severityFilter
+  )
+
   return (
     <div>
-      <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Flags</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400">Flags</h2>
+        {filteredFlags.length > 0 && <DownloadRiskFlagsReportButton flags={filteredFlags} />}
+      </div>
       <RiskFlagsList
         flags={flags}
         severityFilter={severityFilter}

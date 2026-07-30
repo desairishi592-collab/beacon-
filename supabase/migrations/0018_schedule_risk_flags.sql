@@ -1,16 +1,18 @@
 -- Schedule risk analysis: schedule_uploads gains the fields needed to run
 -- real analysis (full parsed rows, the detected/confirmed column mapping,
--- and whether the manager still needs to confirm it manually), and
--- risk_flags is revived — this time tied to schedule_uploads instead of
--- the now-removed financial_snapshots, computed from actual staffing
--- signals rather than manual check-in ratings.
+-- and whether the manager still needs to confirm it manually), and a new
+-- schedule_risk_flags table holds flags tied to schedule_uploads, computed
+-- from actual staffing signals rather than manual check-in ratings. Kept
+-- distinct from the finance risk_flags table (tied to financial_snapshots,
+-- see 0003_risk_flags.sql) since Finance and the other fields now run two
+-- independent risk pipelines side by side.
 
 alter table public.schedule_uploads
   add column if not exists rows jsonb not null default '[]'::jsonb,
   add column if not exists column_mapping jsonb not null default '{}'::jsonb,
   add column if not exists needs_mapping boolean not null default false;
 
-create table if not exists public.risk_flags (
+create table if not exists public.schedule_risk_flags (
   id uuid primary key default gen_random_uuid(),
   upload_id uuid not null references public.schedule_uploads (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
@@ -38,23 +40,23 @@ create table if not exists public.risk_flags (
   created_at timestamptz not null default now()
 );
 
-create index if not exists risk_flags_upload_idx on public.risk_flags (upload_id);
-create index if not exists risk_flags_profile_created_idx on public.risk_flags (profile_id, created_at desc);
+create index if not exists schedule_risk_flags_upload_idx on public.schedule_risk_flags (upload_id);
+create index if not exists schedule_risk_flags_profile_created_idx on public.schedule_risk_flags (profile_id, created_at desc);
 
-alter table public.risk_flags enable row level security;
+alter table public.schedule_risk_flags enable row level security;
 
--- Unlike the old finance risk_flags (written by a service-role ingestion
--- job), this analysis runs synchronously inside the user's own upload
--- server action, so normal owner-scoped policies apply — same pattern as
+-- Unlike the finance risk_flags (written by a service-role ingestion job),
+-- this analysis runs synchronously inside the user's own upload server
+-- action, so normal owner-scoped policies apply — same pattern as
 -- schedule_uploads.
-create policy "Users can view their own risk flags"
-  on public.risk_flags for select
+create policy "Users can view their own schedule risk flags"
+  on public.schedule_risk_flags for select
   using (auth.uid() = profile_id);
 
-create policy "Users can insert their own risk flags"
-  on public.risk_flags for insert
+create policy "Users can insert their own schedule risk flags"
+  on public.schedule_risk_flags for insert
   with check (auth.uid() = profile_id);
 
-create policy "Users can delete their own risk flags"
-  on public.risk_flags for delete
+create policy "Users can delete their own schedule risk flags"
+  on public.schedule_risk_flags for delete
   using (auth.uid() = profile_id);

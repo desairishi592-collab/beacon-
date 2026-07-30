@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/quickbooks-sync",
+      "schedule": "0 13 * * *"
+    },
+    {
       "path": "/api/cron/check-in-reminder",
       "schedule": "0 13 * * 1"
     },

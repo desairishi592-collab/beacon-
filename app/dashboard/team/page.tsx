@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
 import { CheckInHistory } from '../_components/check-in-history'
 import type { ManualCheckin } from '@/lib/supabase/types'
 
@@ -33,15 +34,17 @@ export default async function TeamPage() {
 
   const checkinsByMember = new Map<string, ManualCheckin[]>()
   await Promise.all(
-    teamMembers.map(async (member) => {
-      const { data: checkins } = await db
-        .from('manual_checkins')
-        .select('*')
-        .eq('profile_id', member.id)
-        .order('created_at', { ascending: false })
-        .limit(5)
-      checkinsByMember.set(member.id, checkins ?? [])
-    })
+    teamMembers
+      .filter((member) => isManualCheckinField(member.field))
+      .map(async (member) => {
+        const { data: checkins } = await db
+          .from('manual_checkins')
+          .select('*')
+          .eq('profile_id', member.id)
+          .order('created_at', { ascending: false })
+          .limit(5)
+        checkinsByMember.set(member.id, checkins ?? [])
+      })
   )
 
   return (
@@ -49,7 +52,8 @@ export default async function TeamPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
         <p className="mt-1 text-neutral-500 dark:text-neutral-400">
-          Recent check-ins from the teammates you&apos;ve invited.
+          Recent check-ins from the teammates you&apos;ve invited. Financial data and risk flags
+          stay private to each person&apos;s own account.
         </p>
       </div>
 
@@ -75,7 +79,12 @@ export default async function TeamPage() {
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">{member.role}</span>
                 </div>
 
-                {checkins.length === 0 ? (
+                {!isManualCheckinField(member.field) ? (
+                  <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-600">
+                    Finance check-ins run through QuickBooks and risk flags, which aren&apos;t shared
+                    in team view.
+                  </p>
+                ) : checkins.length === 0 ? (
                   <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-600">
                     No check-ins submitted yet.
                   </p>

@@ -1,7 +1,23 @@
 import type { CurrentSession } from '@/lib/current-user'
-import { getDashboardSummary, type OverallStatus } from '@/lib/dashboard/summary'
-import { daysSince } from '@/lib/dashboard/format'
+import {
+  getDashboardSummary,
+  type OverallStatus,
+  type RiskFlagCounts,
+  type UrgentIndicator,
+} from '@/lib/dashboard/summary'
+import { SEVERITY_ORDER, SEVERITY_LABEL, daysSince, formatRunway } from '@/lib/dashboard/format'
 import { CopySummaryButton } from './copy-summary-button'
+import type { RiskSeverity } from '@/lib/supabase/types'
+
+// Same red/neutral urgent-vs-informational split as the risk flags list
+// (app/dashboard/risk-flags/risk-flags-list.tsx), plus a lighter red for the
+// "medium" severity that doesn't carry that urgent treatment there.
+const SEVERITY_CLASSES: Record<RiskSeverity, string> = {
+  critical: 'text-red-700 dark:text-red-400',
+  high: 'text-red-700 dark:text-red-400',
+  medium: 'text-red-600 dark:text-red-300',
+  low: 'text-neutral-700 dark:text-neutral-300',
+}
 
 const STATUS_COPY: Record<OverallStatus, { label: string; className: string }> = {
   healthy: {
@@ -11,6 +27,10 @@ const STATUS_COPY: Record<OverallStatus, { label: string; className: string }> =
   needs_attention: {
     label: 'Needs attention',
     className: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400',
+  },
+  critical: {
+    label: 'Critical',
+    className: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
   },
 }
 
@@ -25,20 +45,50 @@ function StatusBadge({ status }: { status: OverallStatus }) {
   )
 }
 
-function UrgentBanner({ lastActivityAt }: { lastActivityAt: string | null }) {
-  const days = daysSince(lastActivityAt)
+// Strong red for cash runway critical (matches the "critical" severity
+// treatment elsewhere on the dashboard), lighter red for check-in overdue (a
+// softer, reminder-level urgency, matching the "needs attention" status color).
+const URGENT_CLASSES: Record<UrgentIndicator['kind'], { container: string; title: string; body: string }> = {
+  cash_runway_critical: {
+    container: 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950',
+    title: 'text-red-800 dark:text-red-300',
+    body: 'text-red-700 dark:text-red-400',
+  },
+  check_in_overdue: {
+    container: 'border-red-100 bg-red-50/50 dark:border-red-900/50 dark:bg-red-950/40',
+    title: 'text-red-600 dark:text-red-400',
+    body: 'text-red-600 dark:text-red-400',
+  },
+}
+
+const URGENT_LABEL: Record<UrgentIndicator['kind'], string> = {
+  cash_runway_critical: 'Cash runway critical',
+  check_in_overdue: 'Check-in overdue',
+}
+
+function UrgentBanner({
+  indicator,
+  lastActivityAt,
+}: {
+  indicator: UrgentIndicator
+  lastActivityAt: string | null
+}) {
+  const classes = URGENT_CLASSES[indicator.kind]
+
   const message =
-    days === null
-      ? 'No check-in has been submitted yet.'
-      : `It's been ${days} day${days === 1 ? '' : 's'} since the last check-in.`
+    indicator.kind === 'cash_runway_critical'
+      ? `${indicator.title} — ${formatRunway(indicator.runwayMonths)} at the current burn rate.`
+      : (() => {
+          const days = daysSince(lastActivityAt)
+          return days === null
+            ? "No check-in has been submitted yet."
+            : `It's been ${days} day${days === 1 ? '' : 's'} since the last check-in.`
+        })()
 
   return (
-    <div
-      role="alert"
-      className="mb-3 rounded-lg border border-red-100 bg-red-50/50 p-4 dark:border-red-900/50 dark:bg-red-950/40"
-    >
-      <p className="text-sm font-semibold text-red-600 dark:text-red-400">Check-in overdue</p>
-      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{message}</p>
+    <div role="alert" className={`mb-3 rounded-lg border p-4 ${classes.container}`}>
+      <p className={`text-sm font-semibold ${classes.title}`}>{URGENT_LABEL[indicator.kind]}</p>
+      <p className={`mt-1 text-sm ${classes.body}`}>{message}</p>
     </div>
   )
 }
@@ -52,10 +102,33 @@ function SummaryTile({ label, children }: { label: string; children: React.React
   )
 }
 
-function LastActivityTile({ lastActivityAt }: { lastActivityAt: string | null }) {
+function RiskFlagCountsTile({ counts }: { counts: RiskFlagCounts }) {
+  const total = SEVERITY_ORDER.reduce((sum, severity) => sum + counts[severity], 0)
+
+  return (
+    <SummaryTile label="Open risk flags">
+      <p className="text-xl font-semibold tracking-tight">{total}</p>
+      <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+        {SEVERITY_ORDER.map((severity) => (
+          <li key={severity} className={`text-xs font-medium ${SEVERITY_CLASSES[severity]}`}>
+            {SEVERITY_LABEL[severity]} {counts[severity]}
+          </li>
+        ))}
+      </ul>
+    </SummaryTile>
+  )
+}
+
+function LastActivityTile({
+  lastActivityAt,
+  lastActivityLabel,
+}: {
+  lastActivityAt: string | null
+  lastActivityLabel: 'sync' | 'check-in'
+}) {
   const days = daysSince(lastActivityAt)
   return (
-    <SummaryTile label="Days since last check-in">
+    <SummaryTile label={`Days since last ${lastActivityLabel}`}>
       <p className="text-xl font-semibold tracking-tight">{days === null ? 'Never' : days}</p>
     </SummaryTile>
   )
@@ -69,22 +142,35 @@ function OverallStatusTile({ status }: { status: OverallStatus }) {
   )
 }
 
-// At-a-glance summary shown above the check-in dashboard content
-// (CheckInOverview) — read-only over check-in data.
-export async function DashboardSummary({ session }: { session: CurrentSession | null }) {
+// At-a-glance summary shown above the field-specific dashboard content
+// (FinancialOverview or CheckInOverview) — read-only over risk flags,
+// check-ins, and QuickBooks sync data, regardless of the user's field.
+export async function DashboardSummary({
+  session,
+  isFinance,
+}: {
+  session: CurrentSession | null
+  isFinance: boolean
+}) {
   if (!session) return null
 
-  const summary = await getDashboardSummary(session)
+  const summary = await getDashboardSummary(session, isFinance)
 
   return (
     <div className="mt-6">
       <div className="mb-3 flex items-center justify-end">
         <CopySummaryButton summary={summary} />
       </div>
-      {summary.isCheckInOverdue && <UrgentBanner lastActivityAt={summary.lastActivityAt} />}
-      <div className="grid grid-cols-2 gap-3">
+      {summary.urgentIndicator && (
+        <UrgentBanner indicator={summary.urgentIndicator} lastActivityAt={summary.lastActivityAt} />
+      )}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <OverallStatusTile status={summary.overallStatus} />
-        <LastActivityTile lastActivityAt={summary.lastActivityAt} />
+        <RiskFlagCountsTile counts={summary.riskFlagCounts} />
+        <LastActivityTile
+          lastActivityAt={summary.lastActivityAt}
+          lastActivityLabel={summary.lastActivityLabel}
+        />
       </div>
     </div>
   )
@@ -96,8 +182,8 @@ function SkeletonBlock({ className }: { className: string }) {
 
 export function DashboardSummarySkeleton() {
   return (
-    <div className="mt-6 grid animate-pulse grid-cols-2 gap-3" aria-hidden="true">
-      {[0, 1].map((i) => (
+    <div className="mt-6 grid animate-pulse grid-cols-2 gap-3 sm:grid-cols-3" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
         <div
           key={i}
           className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"

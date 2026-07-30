@@ -28,7 +28,7 @@ describe('analyzeScheduleUpload', () => {
     const db = makeDb()
     await analyzeScheduleUpload(db as never, 'upload-1', 'profile-1', [], mapping)
 
-    expect(db.from).toHaveBeenCalledWith('risk_flags')
+    expect(db.from).toHaveBeenCalledWith('schedule_risk_flags')
     expect(db.del).toHaveBeenCalled()
     expect(db.eqDelete).toHaveBeenCalledWith('upload_id', 'upload-1')
   })

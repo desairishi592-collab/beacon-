@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
-import { getCheckInQuestions } from '@/lib/check-ins/questions'
+import { getCheckInQuestions, isManualCheckinField } from '@/lib/check-ins/questions'
 import { CheckInTrends } from '../../_components/check-in-trends'
 import { CheckInHistory } from '../../_components/check-in-history'
 import { DownloadCheckInReportButton } from '../../_components/download-check-in-report-button'
@@ -48,8 +48,10 @@ export default async function CheckInHistoryPage() {
 
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   if (!profile) redirect('/onboarding')
+  // Finance has a real integration (QuickBooks) and its own trends view.
+  if (!isManualCheckinField(profile.field)) redirect('/dashboard/integrations')
 
-  const questions = getCheckInQuestions()
+  const questions = getCheckInQuestions(profile.field)
 
   const { data: checkins } = await db
     .from('manual_checkins')

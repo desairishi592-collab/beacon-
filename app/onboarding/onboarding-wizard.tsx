@@ -3,7 +3,14 @@
 import { useActionState, useState, type FormEvent } from 'react'
 import { completeOnboarding, type OnboardingState } from './actions'
 
-const STEPS = ['Name', 'Role', 'Team size'] as const
+const FIELD_OPTIONS = [
+  { value: 'finance', label: 'Finance' },
+  { value: 'medicine', label: 'Medicine' },
+  { value: 'engineering', label: 'Engineering' },
+  { value: 'other', label: 'Other' },
+]
+
+const STEPS = ['Name', 'Role', 'Field', 'Team size'] as const
 
 const initialState: OnboardingState = undefined
 
@@ -11,11 +18,13 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
+  const [field, setField] = useState('')
   const [teamSize, setTeamSize] = useState('')
   const [state, formAction, pending] = useActionState(completeOnboarding, initialState)
 
   const isLastStep = step === STEPS.length - 1
-  const canContinue = step === 0 ? name.trim().length > 0 : role.trim().length > 0
+  const canContinue =
+    step === 0 ? name.trim().length > 0 : step === 1 ? role.trim().length > 0 : field.length > 0
 
   const teamSizeNum = Number(teamSize)
   const isTeamSizeValid =
@@ -80,12 +89,36 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
               <input
                 id="role"
                 autoFocus
-                placeholder="e.g. Charge Nurse"
+                placeholder="e.g. Finance Manager"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 required
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
               />
+            </div>
+          )}
+          {step === 2 && (
+            <div className="space-y-1">
+              <label htmlFor="field" className="text-sm font-medium">
+                Which field are you in?
+              </label>
+              <select
+                id="field"
+                autoFocus
+                value={field}
+                onChange={(e) => setField(e.target.value)}
+                required
+                className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
+              >
+                <option value="" disabled>
+                  Select a field…
+                </option>
+                {FIELD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -111,6 +144,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="name" value={name} />
           <input type="hidden" name="role" value={role} />
+          <input type="hidden" name="field" value={field} />
           {inviteId && <input type="hidden" name="invite" value={inviteId} />}
 
           <div className="space-y-1">

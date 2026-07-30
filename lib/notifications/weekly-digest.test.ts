@@ -16,7 +16,7 @@ vi.mock('@/lib/dashboard/summary', async () => {
 
 import { getNextWeeklyDigestAt, sendWeeklyDigests } from './weekly-digest'
 
-function makeDb(profiles: { id: string }[] | null, profilesError: unknown = null) {
+function makeDb(profiles: { id: string; field: string }[] | null, profilesError: unknown = null) {
   const eq = vi.fn().mockResolvedValue({ data: profiles, error: profilesError })
   const select = vi.fn(() => ({ eq }))
   const from = vi.fn(() => ({ select }))
@@ -24,9 +24,11 @@ function makeDb(profiles: { id: string }[] | null, profilesError: unknown = null
 }
 
 const HEALTHY_SUMMARY = {
+  riskFlagCounts: { critical: 0, high: 0, medium: 0, low: 0 },
   overallStatus: 'healthy' as const,
   lastActivityAt: null,
-  isCheckInOverdue: false,
+  lastActivityLabel: 'check-in' as const,
+  urgentIndicator: null,
 }
 
 describe('getNextWeeklyDigestAt', () => {
@@ -79,13 +81,13 @@ describe('sendWeeklyDigests', () => {
   })
 
   it('sends a digest to every opted-in profile using getDashboardSummary', async () => {
-    const db = makeDb([{ id: 'profile-1' }])
+    const db = makeDb([{ id: 'profile-1', field: 'finance' }])
     createAdminClient.mockReturnValue(db)
 
     const results = await sendWeeklyDigests('https://app.beacon.test')
 
     expect(db.from).toHaveBeenCalledWith('profiles')
-    expect(getDashboardSummary).toHaveBeenCalledWith({ userId: 'profile-1', db })
+    expect(getDashboardSummary).toHaveBeenCalledWith({ userId: 'profile-1', db }, true)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('https://api.sendgrid.com/v3/mail/send')
@@ -96,8 +98,17 @@ describe('sendWeeklyDigests', () => {
     expect(results).toEqual([{ profileId: 'profile-1', sent: true, error: null }])
   })
 
+  it('passes isFinance=false for a non-finance profile', async () => {
+    const db = makeDb([{ id: 'profile-2', field: 'engineering' }])
+    createAdminClient.mockReturnValue(db)
+
+    await sendWeeklyDigests('https://app.beacon.test')
+
+    expect(getDashboardSummary).toHaveBeenCalledWith({ userId: 'profile-2', db }, false)
+  })
+
   it('skips a profile with no email on file and does not send', async () => {
-    const db = makeDb([{ id: 'profile-1' }])
+    const db = makeDb([{ id: 'profile-1', field: 'finance' }])
     createAdminClient.mockReturnValue(db)
     getUserById.mockResolvedValue({ data: { user: null }, error: null })
 
@@ -108,7 +119,7 @@ describe('sendWeeklyDigests', () => {
   })
 
   it('logs and records the failure instead of throwing when SendGrid rejects the send', async () => {
-    const db = makeDb([{ id: 'profile-1' }])
+    const db = makeDb([{ id: 'profile-1', field: 'finance' }])
     createAdminClient.mockReturnValue(db)
     fetchMock.mockResolvedValue({ ok: false, status: 500, text: async () => 'internal error' })
 
@@ -120,7 +131,10 @@ describe('sendWeeklyDigests', () => {
   })
 
   it('does not let one profile failure stop the others', async () => {
-    const db = makeDb([{ id: 'profile-1' }, { id: 'profile-2' }])
+    const db = makeDb([
+      { id: 'profile-1', field: 'finance' },
+      { id: 'profile-2', field: 'engineering' },
+    ])
     createAdminClient.mockReturnValue(db)
     getUserById.mockImplementation(async (id: string) =>
       id === 'profile-1'
