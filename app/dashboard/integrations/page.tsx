@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
-import { UploadForm } from './upload-form'
 
 function ComingSoonBadge() {
   return (
@@ -19,6 +18,22 @@ function ActiveBadge() {
   )
 }
 
+function ConnectedBadge() {
+  return (
+    <span className="shrink-0 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800 dark:bg-green-950 dark:text-green-400">
+      Connected
+    </span>
+  )
+}
+
+function NeedsAttentionBadge() {
+  return (
+    <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-400">
+      Needs attention
+    </span>
+  )
+}
+
 export default async function IntegrationsPage() {
   const session = await getCurrentSession()
   if (!session) redirect('/login')
@@ -26,7 +41,7 @@ export default async function IntegrationsPage() {
 
   const { data: upload } = await db
     .from('schedule_uploads')
-    .select('filename, row_count, columns, preview_rows, created_at')
+    .select('filename, needs_mapping, created_at')
     .eq('profile_id', userId)
     .maybeSingle()
 
@@ -60,53 +75,31 @@ export default async function IntegrationsPage() {
               anything else) and upload it here as a CSV.
             </p>
           </div>
-          <ActiveBadge />
+          {!upload ? <ActiveBadge /> : upload.needs_mapping ? <NeedsAttentionBadge /> : <ConnectedBadge />}
         </div>
 
-        <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-          <UploadForm />
-        </div>
-
-        {upload && (
-          <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+          {upload ? (
             <p className="text-sm text-neutral-700 dark:text-neutral-300">
-              <span className="font-medium">{upload.filename}</span> · {upload.row_count}{' '}
-              {upload.row_count === 1 ? 'row' : 'rows'} · uploaded{' '}
+              <span className="font-medium">{upload.filename}</span> · last uploaded{' '}
               {new Date(upload.created_at).toLocaleString()}
+              {upload.needs_mapping && (
+                <span className="block text-amber-700 dark:text-amber-400">
+                  A few columns still need to be confirmed before this can be analyzed.
+                </span>
+              )}
             </p>
+          ) : (
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">No schedule uploaded yet.</p>
+          )}
 
-            {upload.preview_rows.length > 0 && (
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[400px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                      {upload.columns.map((column) => (
-                        <th
-                          key={column}
-                          scope="col"
-                          className="whitespace-nowrap px-2 py-1.5 font-medium text-neutral-500 dark:text-neutral-400"
-                        >
-                          {column}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {upload.preview_rows.map((row, index) => (
-                      <tr key={index} className="border-b border-neutral-100 last:border-0 dark:border-neutral-900">
-                        {upload.columns.map((column) => (
-                          <td key={column} className="whitespace-nowrap px-2 py-1.5 text-neutral-700 dark:text-neutral-300">
-                            {row[column]}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
+          <Link
+            href="/dashboard/integrations/csv"
+            className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          >
+            {upload ? (upload.needs_mapping ? 'Finish setup' : 'Replace file') : 'Upload schedule'}
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
