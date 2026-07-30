@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestOrigin } from '@/lib/request-origin'
 
-export type AuthState = { error: string } | undefined
+export type AuthState = { error: string; message?: undefined } | { message: string; error?: undefined } | undefined
 
 export async function signUpWithPassword(
   _prevState: AuthState,
@@ -22,10 +22,14 @@ export async function signUpWithPassword(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signUp({ email, password })
+  const { data, error } = await supabase.auth.signUp({ email, password })
 
   if (error) {
     return { error: error.message }
+  }
+
+  if (!data.session) {
+    return { message: 'Check your email to confirm your account before signing in.' }
   }
 
   redirect(inviteId ? `/onboarding?invite=${encodeURIComponent(inviteId)}` : '/onboarding')

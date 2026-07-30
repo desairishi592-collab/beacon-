@@ -34,6 +34,7 @@ export function LoginForm({
   const state = mode === 'sign-in' ? signInState : signUpState
   const pending = mode === 'sign-in' ? signInPending : signUpPending
   const error = state?.error ?? initialError
+  const message = state?.message
 
   return (
     <div className="space-y-6">
@@ -94,6 +95,11 @@ export function LoginForm({
         </div>
 
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {message && (
+          <p role="status" className="text-sm text-green-600 dark:text-green-400">
+            {message}
+          </p>
+        )}
 
         <button
           type="submit"
