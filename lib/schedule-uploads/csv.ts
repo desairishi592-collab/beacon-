@@ -5,6 +5,9 @@ export type ScheduleUploadSummary = {
   rowCount: number
   columns: string[]
   previewRows: Record<string, string>[]
+  // Every data row (not just the preview slice), keyed by header — the
+  // risk analysis engine needs the full dataset, not just a display sample.
+  rows: Record<string, string>[]
 }
 
 // Minimal RFC 4180 parser: handles quoted fields containing commas,
@@ -58,12 +61,12 @@ function parseRows(text: string): string[][] {
 }
 
 export function summarizeScheduleCsv(text: string): ScheduleUploadSummary {
-  const rows = parseRows(text)
-  if (rows.length === 0) {
+  const parsedRows = parseRows(text)
+  if (parsedRows.length === 0) {
     throw new Error('The file is empty.')
   }
 
-  const [header, ...dataRows] = rows
+  const [header, ...dataRows] = parsedRows
   if (header.every((cell) => cell.trim() === '')) {
     throw new Error('Could not find a header row.')
   }
@@ -71,17 +74,20 @@ export function summarizeScheduleCsv(text: string): ScheduleUploadSummary {
     throw new Error('The file has a header row but no data rows.')
   }
 
-  const previewRows = dataRows.slice(0, PREVIEW_ROW_LIMIT).map((row) => {
+  const toRecord = (row: string[]) => {
     const record: Record<string, string> = {}
     header.forEach((column, index) => {
       record[column] = row[index] ?? ''
     })
     return record
-  })
+  }
+
+  const rows = dataRows.map(toRecord)
 
   return {
     rowCount: dataRows.length,
     columns: header,
-    previewRows,
+    previewRows: rows.slice(0, PREVIEW_ROW_LIMIT),
+    rows,
   }
 }

@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { getCurrentSession } from '@/lib/current-user'
 import { DashboardSummary, DashboardSummarySkeleton } from './_components/dashboard-summary'
 import { CheckInOverview } from './_components/check-in-overview'
@@ -23,6 +24,21 @@ export default async function DashboardHomePage() {
       <Suspense fallback={<DashboardSummarySkeleton />}>
         <DashboardSummary session={session} />
       </Suspense>
+
+      <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Upload a staffing schedule to get real risk flags — understaffing, rest violations,
+          key-person dependencies, and coverage gaps — instead of relying on manual check-ins alone.
+        </p>
+        <div className="mt-3 flex gap-4 text-sm font-medium">
+          <Link href="/dashboard/integrations" className="text-neutral-900 hover:underline dark:text-neutral-100">
+            Upload a schedule →
+          </Link>
+          <Link href="/dashboard/risk-flags" className="text-neutral-900 hover:underline dark:text-neutral-100">
+            View risk flags →
+          </Link>
+        </div>
+      </div>
 
       <Suspense fallback={<CheckInHistorySkeleton />}>
         <CheckInOverview session={session} hasProfile={!!profile} />
