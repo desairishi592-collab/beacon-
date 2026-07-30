@@ -14,7 +14,7 @@ export default async function CheckInPage() {
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   if (!profile) redirect('/onboarding')
   // Finance has a real integration (QuickBooks) — send them there instead.
-  if (!isManualCheckinField(profile.field)) redirect('/dashboard/integrations')
+  if (!isManualCheckinField(profile.field)) redirect('/dashboard/settings/integrations')
 
   const questions = getCheckInQuestions(profile.field)
 
@@ -81,7 +81,7 @@ export default async function CheckInPage() {
 
       <p className="text-xs text-neutral-400 dark:text-neutral-600">
         Looking for automated monitoring? Check{' '}
-        <Link href="/dashboard/integrations" className="underline">
+        <Link href="/dashboard/settings/integrations" className="underline">
           Integrations
         </Link>{' '}
         — QuickBooks is supported today, with more integrations planned by field.

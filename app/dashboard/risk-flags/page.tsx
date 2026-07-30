@@ -58,7 +58,7 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
         description="Beacon analyzes an uploaded staffing schedule for understaffing, rest violations, key-person dependencies, and coverage gaps."
         cta={
           <Link
-            href="/dashboard/integrations"
+            href="/dashboard/settings/integrations"
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             Go to Integrations
@@ -75,7 +75,7 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
         description={`${upload.filename} was uploaded but needs a few columns confirmed before it can be analyzed.`}
         cta={
           <Link
-            href="/dashboard/integrations"
+            href="/dashboard/settings/integrations"
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             Finish mapping
@@ -151,7 +151,7 @@ async function FinancialRiskFlags({ userId, db }: { userId: string; db: Supabase
         description="Beacon analyzes your synced financials for cash, burn, coverage, and expense risk."
         cta={
           <Link
-            href="/dashboard/integrations"
+            href="/dashboard/settings/integrations"
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             Go to Integrations

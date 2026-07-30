@@ -33,7 +33,6 @@ export function DashboardNav({
           { href: '/dashboard', label: 'Home' },
           { href: '/dashboard/check-in', label: 'Check-in' },
           { href: '/dashboard/check-in/history', label: 'History' },
-          { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
           ...(isTeamAdmin
             ? [
@@ -45,7 +44,6 @@ export function DashboardNav({
         ]
       : [
           { href: '/dashboard', label: 'Home' },
-          { href: '/dashboard/integrations', label: 'Integrations' },
           { href: '/dashboard/risk-flags', label: 'Risk flags' },
           { href: '/dashboard/alerts', label: 'Alerts', badge: unreadAlertCount },
           ...(isTeamAdmin

@@ -148,8 +148,9 @@ export default async function RootPage() {
           <div className="mx-auto max-w-5xl px-6 py-16 text-center">
             <h2 className="text-2xl font-semibold tracking-tight">Ready to see your risk picture?</h2>
             <p className="mx-auto mt-2 max-w-xl text-neutral-500 dark:text-neutral-400">
-              A short onboarding walks you through your name, role, field, and team size, then it&apos;s
-              straight to your dashboard.
+              A short onboarding walks you through your name, company, role, and field, then asks
+              whether we can integrate with your systems — say yes and we&apos;ll connect a data
+              source right away, or say no and start with quick manual check-ins instead.
             </p>
             <Link
               href="/login"

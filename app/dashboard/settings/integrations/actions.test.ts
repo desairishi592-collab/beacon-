@@ -76,7 +76,7 @@ describe('uploadSchedule', () => {
       ],
       { employee: 'Employee', date: 'Date', role: 'Role' }
     )
-    expect(revalidatePath).toHaveBeenCalledWith('/dashboard/integrations')
+    expect(revalidatePath).toHaveBeenCalledWith('/dashboard/settings/integrations')
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard/risk-flags')
   })
 
@@ -241,7 +241,7 @@ describe('disconnectQuickbooks', () => {
     expect(from).toHaveBeenCalledWith('quickbooks_connections')
     expect(del).toHaveBeenCalled()
     expect(eq).toHaveBeenCalledWith('profile_id', 'user-1')
-    expect(revalidatePath).toHaveBeenCalledWith('/dashboard/integrations')
+    expect(revalidatePath).toHaveBeenCalledWith('/dashboard/settings/integrations')
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard')
   })
 

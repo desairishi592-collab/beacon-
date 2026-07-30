@@ -95,7 +95,7 @@ async function ScheduleIntegrationsPanel({
           )}
 
           <Link
-            href="/dashboard/integrations/csv"
+            href="/dashboard/settings/integrations/csv"
             className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             {upload ? (upload.needs_mapping ? 'Finish setup' : 'Replace file') : 'Upload schedule'}

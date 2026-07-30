@@ -38,7 +38,7 @@ export default async function DashboardHomePage() {
               key-person dependencies, and coverage gaps — instead of relying on manual check-ins alone.
             </p>
             <div className="mt-3 flex gap-4 text-sm font-medium">
-              <Link href="/dashboard/integrations" className="text-neutral-900 hover:underline dark:text-neutral-100">
+              <Link href="/dashboard/settings/integrations" className="text-neutral-900 hover:underline dark:text-neutral-100">
                 Upload a schedule →
               </Link>
               <Link href="/dashboard/risk-flags" className="text-neutral-900 hover:underline dark:text-neutral-100">

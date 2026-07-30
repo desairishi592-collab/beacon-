@@ -10,25 +10,28 @@ const FIELD_OPTIONS = [
   { value: 'other', label: 'Other' },
 ]
 
-const STEPS = ['Name', 'Role', 'Field', 'Team size'] as const
+const STEPS = ['Name', 'Company', 'Role', 'Field', 'Data source'] as const
 
 const initialState: OnboardingState = undefined
 
 export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [role, setRole] = useState('')
   const [field, setField] = useState('')
-  const [teamSize, setTeamSize] = useState('')
+  const [wantsDataIntegration, setWantsDataIntegration] = useState<boolean | null>(null)
   const [state, formAction, pending] = useActionState(completeOnboarding, initialState)
 
   const isLastStep = step === STEPS.length - 1
   const canContinue =
-    step === 0 ? name.trim().length > 0 : step === 1 ? role.trim().length > 0 : field.length > 0
-
-  const teamSizeNum = Number(teamSize)
-  const isTeamSizeValid =
-    teamSize.trim().length > 0 && Number.isInteger(teamSizeNum) && teamSizeNum >= 1
+    step === 0
+      ? name.trim().length > 0
+      : step === 1
+        ? companyName.trim().length > 0
+        : step === 2
+          ? role.trim().length > 0
+          : field.length > 0
 
   function goNext(e: FormEvent) {
     e.preventDefault()
@@ -83,6 +86,22 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
           )}
           {step === 1 && (
             <div className="space-y-1">
+              <label htmlFor="company_name" className="text-sm font-medium">
+                Company name
+              </label>
+              <input
+                id="company_name"
+                autoFocus
+                placeholder="e.g. Acme Inc."
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                required
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </div>
+          )}
+          {step === 2 && (
+            <div className="space-y-1">
               <label htmlFor="role" className="text-sm font-medium">
                 Position / role
               </label>
@@ -97,7 +116,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
               />
             </div>
           )}
-          {step === 2 && (
+          {step === 3 && (
             <div className="space-y-1">
               <label htmlFor="field" className="text-sm font-medium">
                 Which field are you in?
@@ -143,29 +162,52 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
       ) : (
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="name" value={name} />
+          <input type="hidden" name="company_name" value={companyName} />
           <input type="hidden" name="role" value={role} />
           <input type="hidden" name="field" value={field} />
+          <input
+            type="hidden"
+            name="wants_data_integration"
+            value={wantsDataIntegration === null ? '' : wantsDataIntegration ? 'yes' : 'no'}
+          />
           {inviteId && <input type="hidden" name="invite" value={inviteId} />}
 
-          <div className="space-y-1">
-            <label htmlFor="team_size" className="text-sm font-medium">
-              Team size
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Can we integrate with your database/systems?
             </label>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              How many people do you manage?
+              If yes, we&apos;ll take you straight into connecting a data source (like a staffing
+              schedule or QuickBooks) after this. If no, you can do quick manual check-ins instead
+              — and connect a data source later from Settings any time.
             </p>
-            <input
-              id="team_size"
-              name="team_size"
-              type="number"
-              min={1}
-              step={1}
-              autoFocus
-              value={teamSize}
-              onChange={(e) => setTeamSize(e.target.value)}
-              required
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950"
-            />
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setWantsDataIntegration(true)}
+                aria-pressed={wantsDataIntegration === true}
+                className={`rounded-md border px-4 py-2 text-sm font-medium ${
+                  wantsDataIntegration === true
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900'
+                    : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900'
+                }`}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={() => setWantsDataIntegration(false)}
+                aria-pressed={wantsDataIntegration === false}
+                className={`rounded-md border px-4 py-2 text-sm font-medium ${
+                  wantsDataIntegration === false
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900'
+                    : 'border-neutral-300 text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900'
+                }`}
+              >
+                No
+              </button>
+            </div>
           </div>
 
           {state?.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{state.error}</p>}
@@ -180,7 +222,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
             </button>
             <button
               type="submit"
-              disabled={pending || !isTeamSizeValid}
+              disabled={pending || wantsDataIntegration === null}
               className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
             >
               {pending ? 'Saving…' : 'Finish'}

@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
 import { getNextWeeklyDigestAt } from '@/lib/notifications/weekly-digest'
+import { isManualCheckinField } from '@/lib/check-ins/questions'
 import { SettingsForm } from './settings-form'
 import { ConfirmActionButton } from '../_components/confirm-action-button'
 import { leaveTeam } from './actions'
@@ -12,7 +14,9 @@ export default async function SettingsPage() {
 
   const { data: profile, error } = await db
     .from('profiles')
-    .select('name, role, team_size, team_role, weekly_digest_enabled, check_in_reminder_enabled')
+    .select(
+      'name, role, field, team_size, team_role, weekly_digest_enabled, check_in_reminder_enabled, wants_data_integration'
+    )
     .eq('id', userId)
     .maybeSingle()
 
@@ -48,6 +52,23 @@ export default async function SettingsPage() {
           nextDigestLabel={nextDigestLabel}
           checkInReminderEnabled={profile.check_in_reminder_enabled}
         />
+      </div>
+
+      <div className="max-w-md rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+        <h2 className="text-sm font-medium">Data connection</h2>
+        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+          {profile.wants_data_integration
+            ? isManualCheckinField(profile.field)
+              ? 'Connect a staffing schedule, or keep using manual check-ins.'
+              : 'Connect QuickBooks so Beacon can monitor your financials for risk.'
+            : "You chose manual check-ins during setup. You can connect a data source any time."}
+        </p>
+        <Link
+          href="/dashboard/settings/integrations"
+          className="mt-3 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+        >
+          Manage data connection →
+        </Link>
       </div>
 
       {!isAdmin && (

@@ -19,7 +19,7 @@ export default async function RecurringRiskAreaPage({
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   if (!profile) redirect('/onboarding')
   // Finance has a real integration (QuickBooks) and its own trends view.
-  if (!isManualCheckinField(profile.field)) redirect('/dashboard/integrations')
+  if (!isManualCheckinField(profile.field)) redirect('/dashboard/settings/integrations')
 
   const question = getCheckInQuestions(profile.field).find((q) => q.id === questionId)
   if (!question) notFound()

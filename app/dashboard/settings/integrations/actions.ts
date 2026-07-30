@@ -78,7 +78,7 @@ export async function uploadSchedule(
 
   const flags = await analyzeScheduleUpload(db, upload.id, userId, summary.rows, mapping)
 
-  revalidatePath('/dashboard/integrations')
+  revalidatePath('/dashboard/settings/integrations')
   revalidatePath('/dashboard/risk-flags')
   return { success: true, flagCount: flags.length }
 }
@@ -126,7 +126,7 @@ export async function confirmScheduleMapping(
 
   const flags = await analyzeScheduleUpload(db, uploadId, userId, upload.rows, mapping)
 
-  revalidatePath('/dashboard/integrations')
+  revalidatePath('/dashboard/settings/integrations')
   revalidatePath('/dashboard/risk-flags')
   return { success: true, flagCount: flags.length }
 }
@@ -140,7 +140,7 @@ export async function syncQuickbooks(_prevState: SyncState, _formData: FormData)
   try {
     const origin = await getRequestOrigin()
     const result = await syncQuickbooksData(session.userId, origin)
-    revalidatePath('/dashboard/integrations')
+    revalidatePath('/dashboard/settings/integrations')
     revalidatePath('/dashboard')
     return { snapshotsSynced: result.snapshotsSynced }
   } catch (error) {
@@ -157,14 +157,14 @@ export async function disconnectQuickbooks(
   const session = await getCurrentSession()
   if (!session) return { error: 'Not signed in.' }
 
-  // quickbooks_connections is service-role-only (see app/dashboard/integrations/page.tsx),
+  // quickbooks_connections is service-role-only (see app/dashboard/settings/integrations/page.tsx),
   // so the delete has to go through the admin client — scoped to this profile so a caller
   // can only ever remove their own connection.
   const db = createAdminClient()
   const { error } = await db.from('quickbooks_connections').delete().eq('profile_id', session.userId)
   if (error) return { error: error.message }
 
-  revalidatePath('/dashboard/integrations')
+  revalidatePath('/dashboard/settings/integrations')
   revalidatePath('/dashboard')
   return { success: true }
 }

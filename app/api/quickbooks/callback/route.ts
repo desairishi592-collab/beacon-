@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const expectedState = request.cookies.get(QUICKBOOKS_OAUTH_STATE_COOKIE)?.value
 
   const failure = (message: string) => {
-    const target = new URL('/dashboard/integrations', request.url)
+    const target = new URL('/dashboard/settings/integrations', request.url)
     target.searchParams.set('qb_error', message)
     const response = NextResponse.redirect(target)
     response.cookies.delete(QUICKBOOKS_OAUTH_STATE_COOKIE)
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
   // Pull the initial history right away so the dashboard has data as soon as
   // the user lands back on it. Best-effort — a failure here shouldn't make
   // it look like connecting failed; "Sync now" can retry.
-  const target = new URL('/dashboard/integrations', request.url)
+  const target = new URL('/dashboard/settings/integrations', request.url)
   target.searchParams.set('connected', '1')
   try {
     await syncQuickbooksData(session.userId, request.nextUrl.origin)

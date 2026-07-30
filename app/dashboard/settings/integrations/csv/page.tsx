@@ -18,7 +18,7 @@ export default async function CsvUploadPage() {
     <div className="space-y-6">
       <div>
         <Link
-          href="/dashboard/integrations"
+          href="/dashboard/settings/integrations"
           className="text-sm font-medium text-neutral-500 hover:underline dark:text-neutral-400"
         >
           ← Integrations

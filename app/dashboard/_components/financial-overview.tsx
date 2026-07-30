@@ -35,7 +35,7 @@ function NoIntegrationsCard() {
     <EmptyStateCard
       title="No integrations connected yet."
       description="Connect QuickBooks to start monitoring risk flags."
-      linkHref="/dashboard/integrations"
+      linkHref="/dashboard/settings/integrations"
       linkLabel="Go to integrations"
     />
   )
@@ -46,7 +46,7 @@ function NotSyncedYetCard() {
     <EmptyStateCard
       title="QuickBooks is connected, but hasn't synced yet."
       description="Once the first sync finishes, your financial trends will show up here."
-      linkHref="/dashboard/integrations"
+      linkHref="/dashboard/settings/integrations"
       linkLabel="View sync status"
     />
   )
@@ -78,7 +78,7 @@ export async function FinancialOverview({
   // quickbooks_connections has no user-facing select policy (it holds
   // bearer tokens) — read connection status through the service role and
   // only surface the non-sensitive columns, matching the pattern used in
-  // app/dashboard/integrations/page.tsx.
+  // app/dashboard/settings/integrations/page.tsx.
   const db = createAdminClient()
   const { data: connection } = await db
     .from('quickbooks_connections')

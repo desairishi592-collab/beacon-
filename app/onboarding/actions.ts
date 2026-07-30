@@ -14,17 +14,20 @@ export async function completeOnboarding(
   formData: FormData
 ): Promise<OnboardingState> {
   const name = String(formData.get('name') ?? '').trim()
+  const companyName = String(formData.get('company_name') ?? '').trim()
   const role = String(formData.get('role') ?? '').trim()
   const field = String(formData.get('field') ?? '')
-  const teamSize = Number(formData.get('team_size'))
+  const wantsDataIntegrationRaw = String(formData.get('wants_data_integration') ?? '')
   const inviteId = String(formData.get('invite') ?? '').trim()
 
   if (!name) return { error: 'Name is required.' }
+  if (!companyName) return { error: 'Company name is required.' }
   if (!role) return { error: 'Position/role is required.' }
   if (!VALID_FIELDS.includes(field as Field)) return { error: 'Please select a field.' }
-  if (!Number.isInteger(teamSize) || teamSize < 1) {
-    return { error: 'Team size must be a whole number of at least 1.' }
+  if (wantsDataIntegrationRaw !== 'yes' && wantsDataIntegrationRaw !== 'no') {
+    return { error: 'Let us know if we can integrate with your database/systems.' }
   }
+  const wantsDataIntegration = wantsDataIntegrationRaw === 'yes'
 
   const session = await getCurrentSession()
   if (!session) {
@@ -49,9 +52,13 @@ export async function completeOnboarding(
   const { error } = await db.from('profiles').upsert({
     id: userId,
     name,
+    company_name: companyName,
     role,
     field: field as Field,
-    team_size: teamSize,
+    // Team size isn't asked during onboarding anymore — default to 1 and
+    // let the user adjust it later in Settings.
+    team_size: 1,
+    wants_data_integration: wantsDataIntegration,
     ...(resolved ? { team_id: resolved.teamId, team_role: resolved.role } : {}),
   })
 
@@ -59,5 +66,5 @@ export async function completeOnboarding(
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  redirect(wantsDataIntegration ? '/dashboard/settings/integrations' : '/dashboard')
 }
