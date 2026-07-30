@@ -78,7 +78,7 @@ export function SettingsForm({
           name="weekly_digest_enabled"
           type="checkbox"
           defaultChecked={weeklyDigestEnabled}
-          className="mt-0.5 h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-neutral-900 dark:border-neutral-700 dark:accent-neutral-100"
         />
         <label htmlFor="weekly_digest_enabled" className="text-sm">
           <span className="font-medium">Weekly email digest</span>
@@ -100,7 +100,7 @@ export function SettingsForm({
           name="check_in_reminder_enabled"
           type="checkbox"
           defaultChecked={checkInReminderEnabled}
-          className="mt-0.5 h-4 w-4 rounded border-neutral-300 dark:border-neutral-700"
+          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-neutral-900 dark:border-neutral-700 dark:accent-neutral-100"
         />
         <label htmlFor="check_in_reminder_enabled" className="text-sm">
           <span className="font-medium">Check-in reminder emails</span>
