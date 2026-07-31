@@ -7,6 +7,8 @@ import { ALL_CONCEPTS, inferColumnMapping, type ScheduleConcept } from '@/lib/sc
 import { analyzeScheduleUpload } from '@/lib/schedule-risk-engine/analyze'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { syncQuickbooksData } from '@/lib/quickbooks/sync'
+import { fetchRepo } from '@/lib/github/repos'
+import { syncGithubData } from '@/lib/github/sync'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type UploadScheduleState =
@@ -162,6 +164,105 @@ export async function disconnectQuickbooks(
   // can only ever remove their own connection.
   const db = createAdminClient()
   const { error } = await db.from('quickbooks_connections').delete().eq('profile_id', session.userId)
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/settings/integrations')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export type ConnectGithubState =
+  | { error: string }
+  | { success: true; flagsComputed: number; syncError?: string }
+  | undefined
+
+// Saves a GitHub connection from a user-supplied fine-grained Personal
+// Access Token plus "owner/repo" — there's no OAuth redirect here (see
+// lib/github/client.ts's comment on why: classic GitHub OAuth scopes can't
+// express read-only for private repos, only fine-grained PATs and GitHub
+// Apps can). The token is validated with a single read-only GET before
+// anything is stored, so a bad token or inaccessible repo never gets saved.
+export async function connectGithub(
+  _prevState: ConnectGithubState,
+  formData: FormData
+): Promise<ConnectGithubState> {
+  const session = await getCurrentSession()
+  if (!session) return { error: 'Not signed in.' }
+
+  const token = String(formData.get('token') ?? '').trim()
+  const repoInput = String(formData.get('repo') ?? '').trim()
+  if (!token) return { error: 'Paste a fine-grained personal access token.' }
+
+  const match = /^([\w.-]+)\/([\w.-]+)$/.exec(repoInput)
+  if (!match) return { error: 'Enter the repository as "owner/repo", e.g. "acme/api".' }
+  const [, owner, repo] = match
+
+  try {
+    await fetchRepo(token, owner, repo)
+  } catch {
+    return {
+      error:
+        'Could not read that repository with the given token. Check the token is valid and grants at least read-only access to this repo.',
+    }
+  }
+
+  // github_connections is service-role-only (holds a bearer token), so the
+  // write has to go through the admin client — same pattern as
+  // quickbooks_connections.
+  const db = createAdminClient()
+  const { error } = await db.from('github_connections').upsert(
+    { profile_id: session.userId, repo_owner: owner, repo_name: repo, access_token: token },
+    { onConflict: 'profile_id' }
+  )
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard/settings/integrations')
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/risk-flags')
+
+  // Pull the initial data right away so the dashboard has something to show
+  // as soon as connecting finishes. Best-effort — a failure here shouldn't
+  // make it look like connecting failed; "Sync now" can retry.
+  try {
+    const result = await syncGithubData(session.userId)
+    return { success: true, flagsComputed: result.flagsComputed }
+  } catch (error) {
+    return {
+      success: true,
+      flagsComputed: 0,
+      syncError: error instanceof Error ? error.message : 'Connected, but the initial sync failed.',
+    }
+  }
+}
+
+export type SyncGithubState = { error: string } | { flagsComputed: number } | undefined
+
+export async function syncGithub(_prevState: SyncGithubState, _formData: FormData): Promise<SyncGithubState> {
+  const session = await getCurrentSession()
+  if (!session) return { error: 'Not signed in.' }
+
+  try {
+    const result = await syncGithubData(session.userId)
+    revalidatePath('/dashboard/settings/integrations')
+    revalidatePath('/dashboard')
+    revalidatePath('/dashboard/risk-flags')
+    return { flagsComputed: result.flagsComputed }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Sync failed.' }
+  }
+}
+
+export type DisconnectGithubState = { error: string } | { success: true } | undefined
+
+export async function disconnectGithub(
+  _prevState: DisconnectGithubState,
+  _formData: FormData
+): Promise<DisconnectGithubState> {
+  const session = await getCurrentSession()
+  if (!session) return { error: 'Not signed in.' }
+
+  const db = createAdminClient()
+  const { error } = await db.from('github_connections').delete().eq('profile_id', session.userId)
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard/settings/integrations')

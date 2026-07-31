@@ -5,6 +5,7 @@ import { isManualCheckinField } from '@/lib/check-ins/questions'
 import { DashboardSummary, DashboardSummarySkeleton } from './_components/dashboard-summary'
 import { FinancialOverview } from './_components/financial-overview'
 import { FinancialTrendsSkeleton } from './_components/financial-trends'
+import { EngineeringOverview } from './_components/engineering-overview'
 import { CheckInOverview } from './_components/check-in-overview'
 import { CheckInHistorySkeleton } from './_components/check-in-history'
 
@@ -16,6 +17,7 @@ export default async function DashboardHomePage() {
     : { data: null }
 
   const showCheckInPath = profile ? isManualCheckinField(profile.field) : false
+  const isEngineering = profile?.field === 'engineering'
 
   return (
     <div>
@@ -30,7 +32,33 @@ export default async function DashboardHomePage() {
         <DashboardSummary session={session} isFinance={!showCheckInPath} />
       </Suspense>
 
-      {showCheckInPath ? (
+      {isEngineering ? (
+        <>
+          <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+              Connect a GitHub repository to get real risk flags — stale pull requests, unresolved
+              critical issues, and deploy-frequency drops — instead of relying on manual check-ins
+              alone. Access is read-only: Beacon never writes to your repository.
+            </p>
+            <div className="mt-3 flex gap-4 text-sm font-medium">
+              <Link href="/dashboard/settings/integrations" className="text-neutral-900 hover:underline dark:text-neutral-100">
+                Connect GitHub →
+              </Link>
+              <Link href="/dashboard/risk-flags" className="text-neutral-900 hover:underline dark:text-neutral-100">
+                View risk flags →
+              </Link>
+            </div>
+          </div>
+
+          <Suspense fallback={<FinancialTrendsSkeleton />}>
+            <EngineeringOverview session={session} hasProfile={!!profile} />
+          </Suspense>
+
+          <Suspense fallback={<CheckInHistorySkeleton />}>
+            <CheckInOverview session={session} hasProfile={!!profile} field={profile?.field} />
+          </Suspense>
+        </>
+      ) : showCheckInPath ? (
         <>
           <div className="mt-6 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
             <p className="text-sm text-neutral-600 dark:text-neutral-400">

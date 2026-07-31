@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/lib/supabase/types'
 import { SyncButton } from './sync-button'
 import { DisconnectButton } from './disconnect-button'
+import { GithubConnectForm, GithubSyncButton, GithubDisconnectButton } from './github-panel'
 
 function ComingSoonBadge() {
   return (
@@ -18,7 +19,7 @@ function ComingSoonBadge() {
 
 function ActiveBadge() {
   return (
-    <span className="shrink-0 rounded-full bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white dark:bg-white dark:text-neutral-900">
+    <span className="shrink-0 rounded-full bg-field-1 px-2.5 py-1 text-xs font-medium text-field-1-fg">
       Active
     </span>
   )
@@ -37,6 +38,27 @@ function NeedsAttentionBadge() {
     <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-400">
       Needs attention
     </span>
+  )
+}
+
+function ManualCheckinPanel() {
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-medium">Manual check-in</h2>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            No data source? Answer a short check-in yourself, periodically.
+          </p>
+        </div>
+        <ActiveBadge />
+      </div>
+      <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+        <Link href="/dashboard/check-in" className="text-sm font-medium text-field-1 hover:underline">
+          Go to check-in →
+        </Link>
+      </div>
+    </div>
   )
 }
 
@@ -96,32 +118,76 @@ async function ScheduleIntegrationsPanel({
 
           <Link
             href="/dashboard/settings/integrations/csv"
-            className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="shrink-0 rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
           >
             {upload ? (upload.needs_mapping ? 'Finish setup' : 'Replace file') : 'Upload schedule'}
           </Link>
         </div>
       </div>
 
+      <ManualCheckinPanel />
+    </>
+  )
+}
+
+async function GithubIntegrationsPanel({ userId }: { userId: string }) {
+  // github_connections has no user-facing select policy (it holds a bearer
+  // token) — read connection status through the service role and only
+  // surface the non-sensitive columns, same pattern as
+  // quickbooks_connections below.
+  const db = createAdminClient()
+  const { data: connection } = await db
+    .from('github_connections')
+    .select('repo_owner, repo_name, last_synced_at')
+    .eq('profile_id', userId)
+    .maybeSingle()
+
+  return (
+    <>
+      <div className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
+        <p className="font-medium text-neutral-900 dark:text-neutral-100">Read-only access</p>
+        <p className="mt-1">
+          Beacon only ever reads from GitHub — open pull requests, open issues, and commit history.
+          It never writes, comments on, or modifies anything in your repository. Create a{' '}
+          <span className="font-medium">fine-grained personal access token</span> scoped to just this
+          repository with <span className="font-medium">Contents</span>,{' '}
+          <span className="font-medium">Issues</span>, <span className="font-medium">Pull requests</span>,
+          and <span className="font-medium">Metadata</span> permissions all set to{' '}
+          <span className="font-medium">Read-only</span> — Beacon will never ask for anything more.
+        </p>
+      </div>
+
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-medium">Manual check-in</h2>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              No data source? Answer a short check-in yourself, periodically.
-            </p>
+          <div className="min-w-0">
+            <h2 className="font-medium">GitHub</h2>
+            {connection ? (
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                {connection.repo_owner}/{connection.repo_name} ·{' '}
+                {connection.last_synced_at
+                  ? `Last synced ${new Date(connection.last_synced_at).toLocaleString()}`
+                  : 'Not synced yet'}
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Not connected</p>
+            )}
           </div>
-          <ActiveBadge />
+          {connection && <ConnectedBadge />}
         </div>
+
         <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-          <Link
-            href="/dashboard/check-in"
-            className="text-sm font-medium text-neutral-900 hover:underline dark:text-neutral-100"
-          >
-            Go to check-in →
-          </Link>
+          {connection ? (
+            <div className="flex flex-wrap items-start gap-2">
+              <GithubSyncButton />
+              <GithubDisconnectButton />
+            </div>
+          ) : (
+            <GithubConnectForm />
+          )}
         </div>
       </div>
+
+      <ManualCheckinPanel />
     </>
   )
 }
@@ -169,14 +235,14 @@ async function QuickbooksIntegrationsPanel({
       )}
       {params.connected && !params.qb_sync_error && (
         <p className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-          QuickBooks connected and synced.
+          Financial data connected and synced.
         </p>
       )}
 
       <div className="rounded-lg border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h2 className="font-medium">QuickBooks</h2>
+            <h2 className="font-medium">Financial data</h2>
             {connection ? (
               <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
                 Company {connection.realm_id} ·{' '}
@@ -197,9 +263,9 @@ async function QuickbooksIntegrationsPanel({
           ) : (
             <a
               href="/api/quickbooks/connect"
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+              className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
             >
-              Connect QuickBooks
+              Connect your financial data
             </a>
           )}
         </div>
@@ -256,20 +322,26 @@ export default async function IntegrationsPage({
   const params = await searchParams
 
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
+  const field = profile?.field
   const showCheckInPath = profile ? isManualCheckinField(profile.field) : true
+  const isEngineering = field === 'engineering'
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
         <p className="mt-1 text-neutral-500 dark:text-neutral-400">
-          {showCheckInPath
-            ? 'Connect a staffing or scheduling data source, or keep using manual check-ins.'
-            : 'Connect QuickBooks so Beacon can monitor your financials for risk.'}
+          {isEngineering
+            ? 'Connect a GitHub repository for real risk signals, or keep using manual check-ins.'
+            : showCheckInPath
+              ? 'Connect a staffing or scheduling data source, or keep using manual check-ins.'
+              : 'Connect your financial data so Beacon can monitor your financials for risk.'}
         </p>
       </div>
 
-      {showCheckInPath ? (
+      {isEngineering ? (
+        <GithubIntegrationsPanel userId={userId} />
+      ) : showCheckInPath ? (
         <ScheduleIntegrationsPanel userId={userId} db={db} />
       ) : (
         <QuickbooksIntegrationsPanel userId={userId} params={params} />

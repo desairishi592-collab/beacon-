@@ -184,6 +184,63 @@ export type QuickbooksSyncRun = {
   finished_at: string
 }
 
+// GitHub connection: a fine-grained Personal Access Token the user generates
+// and scopes themselves (outside this app) to Contents/Issues/Pull
+// requests/Metadata = Read-only for a single repository. Beacon never
+// requests or uses write access — see lib/github/client.ts, which only
+// exposes a GET helper.
+export type GithubConnection = {
+  id: string
+  profile_id: string
+  repo_owner: string
+  repo_name: string
+  access_token: string
+  last_synced_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type EngineeringSnapshot = {
+  id: string
+  profile_id: string
+  synced_at: string
+  open_pr_count: number
+  oldest_open_pr_days: number | null
+  oldest_open_pr_number: number | null
+  oldest_open_pr_title: string | null
+  open_critical_issue_count: number
+  oldest_critical_issue_days: number | null
+  oldest_critical_issue_number: number | null
+  oldest_critical_issue_title: string | null
+  commits_last_30_days: number
+  source: string
+  created_at: string
+}
+
+// Engineering risk flags (computed from engineering_snapshots via GitHub).
+// Distinct from RiskSignalType/RiskFlag (finance) and ScheduleRiskSignalType
+// (staffing) — a third independent risk pipeline, same convention.
+export type EngineeringRiskSignalType =
+  | 'stale_pull_requests'
+  | 'unresolved_critical_issues'
+  | 'deploy_frequency_drop'
+
+export type EngineeringRiskFlag = {
+  id: string
+  snapshot_id: string
+  profile_id: string
+  signal_type: EngineeringRiskSignalType
+  severity: RiskSeverity
+  metric_value: number
+  threshold_value: number | null
+  metric_label: string
+  title: string
+  explanation: string
+  recommendation: string
+  raw_signal: Record<string, unknown>
+  created_at: string
+}
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '13'
@@ -433,6 +490,75 @@ export type Database = {
         }
         Update: Partial<{
           email_enabled: boolean
+        }>
+        Relationships: []
+      }
+      github_connections: {
+        Row: GithubConnection
+        Insert: {
+          id?: string
+          profile_id: string
+          repo_owner: string
+          repo_name: string
+          access_token: string
+          last_synced_at?: string | null
+        }
+        Update: Partial<{
+          repo_owner: string
+          repo_name: string
+          access_token: string
+          last_synced_at: string | null
+        }>
+        Relationships: []
+      }
+      engineering_snapshots: {
+        Row: EngineeringSnapshot
+        Insert: {
+          id?: string
+          profile_id: string
+          synced_at?: string
+          open_pr_count?: number
+          oldest_open_pr_days?: number | null
+          oldest_open_pr_number?: number | null
+          oldest_open_pr_title?: string | null
+          open_critical_issue_count?: number
+          oldest_critical_issue_days?: number | null
+          oldest_critical_issue_number?: number | null
+          oldest_critical_issue_title?: string | null
+          commits_last_30_days?: number
+          source?: string
+        }
+        Update: Partial<{
+          open_pr_count: number
+          oldest_open_pr_days: number | null
+          oldest_open_pr_number: number | null
+          oldest_open_pr_title: string | null
+          open_critical_issue_count: number
+          oldest_critical_issue_days: number | null
+          oldest_critical_issue_number: number | null
+          oldest_critical_issue_title: string | null
+          commits_last_30_days: number
+        }>
+        Relationships: []
+      }
+      engineering_risk_flags: {
+        Row: EngineeringRiskFlag
+        Insert: {
+          id?: string
+          snapshot_id: string
+          profile_id: string
+          signal_type: EngineeringRiskSignalType
+          severity: RiskSeverity
+          metric_value: number
+          threshold_value?: number | null
+          metric_label: string
+          title: string
+          explanation: string
+          recommendation: string
+          raw_signal?: Record<string, unknown>
+        }
+        Update: Partial<{
+          severity: RiskSeverity
         }>
         Relationships: []
       }

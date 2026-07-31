@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentSession } from '@/lib/current-user'
 import { isManualCheckinField } from '@/lib/check-ins/questions'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/lib/supabase/types'
 import { EmptyState, RiskFlagsSection } from './risk-flags-list'
 import {
@@ -13,6 +14,10 @@ import {
   EmptyState as CheckInEmptyState,
   RiskFlagsSection as CheckInRiskFlagsSection,
 } from './checkin-risk-flags-list'
+import {
+  EmptyState as EngineeringEmptyState,
+  RiskFlagsSection as EngineeringRiskFlagsSection,
+} from './engineering-risk-flags-list'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -59,7 +64,7 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
         cta={
           <Link
             href="/dashboard/settings/integrations"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
           >
             Go to Integrations
           </Link>
@@ -76,7 +81,7 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
         cta={
           <Link
             href="/dashboard/settings/integrations"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
           >
             Finish mapping
           </Link>
@@ -92,6 +97,91 @@ async function ScheduleRiskFlags({ userId, db }: { userId: string; db: SupabaseC
         {new Date(upload.created_at).toLocaleString()}
       </p>
       <ScheduleRiskFlagsSection flags={flags ?? []} />
+    </>
+  )
+}
+
+function NumberStatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">{label}</p>
+      <p className="mt-1 text-xl font-semibold tracking-tight">{value}</p>
+    </div>
+  )
+}
+
+async function EngineeringRiskFlags({ userId, db }: { userId: string; db: SupabaseClient<Database> }) {
+  // github_connections has no user-facing select policy (it holds a bearer
+  // token) — check connection status through the service role, same
+  // pattern as app/dashboard/settings/integrations/page.tsx.
+  const adminDb = createAdminClient()
+  const { data: connection } = await adminDb
+    .from('github_connections')
+    .select('repo_owner, repo_name')
+    .eq('profile_id', userId)
+    .maybeSingle()
+
+  if (!connection) {
+    return (
+      <EngineeringEmptyState
+        title="Connect a GitHub repository to see your risk flags."
+        description="Beacon analyzes open pull requests, unresolved critical issues, and commit frequency for delivery and stability risk."
+        cta={
+          <Link
+            href="/dashboard/settings/integrations"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
+          >
+            Go to Integrations
+          </Link>
+        }
+      />
+    )
+  }
+
+  const { data: snapshot } = await db
+    .from('engineering_snapshots')
+    .select('*')
+    .eq('profile_id', userId)
+    .order('synced_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { data: flags } = snapshot
+    ? await db.from('engineering_risk_flags').select('*').eq('snapshot_id', snapshot.id)
+    : { data: null }
+
+  if (!snapshot) {
+    return (
+      <EngineeringEmptyState
+        title={`${connection.repo_owner}/${connection.repo_name} is connected, but hasn't synced yet.`}
+        description="Once the first sync finishes, your risk flags will show up here."
+        cta={
+          <Link
+            href="/dashboard/settings/integrations"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
+          >
+            View sync status
+          </Link>
+        }
+      />
+    )
+  }
+
+  return (
+    <>
+      <div>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400">
+          {connection.repo_owner}/{connection.repo_name} · synced{' '}
+          {new Date(snapshot.synced_at).toLocaleString()}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <NumberStatTile label="Open PRs" value={snapshot.open_pr_count} />
+          <NumberStatTile label="Critical issues" value={snapshot.open_critical_issue_count} />
+          <NumberStatTile label="Commits (30d)" value={snapshot.commits_last_30_days} />
+        </div>
+      </div>
+
+      <EngineeringRiskFlagsSection flags={flags ?? []} />
     </>
   )
 }
@@ -113,7 +203,7 @@ async function CheckInRiskFlags({ userId, db }: { userId: string; db: SupabaseCl
         cta={
           <Link
             href="/dashboard/check-in"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
           >
             Go to check-in
           </Link>
@@ -147,12 +237,12 @@ async function FinancialRiskFlags({ userId, db }: { userId: string; db: Supabase
   if (!snapshot) {
     return (
       <EmptyState
-        title="Connect QuickBooks to see your risk flags."
+        title="Connect your financial data to see your risk flags."
         description="Beacon analyzes your synced financials for cash, burn, coverage, and expense risk."
         cta={
           <Link
             href="/dashboard/settings/integrations"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
           >
             Go to Integrations
           </Link>
@@ -187,19 +277,33 @@ export default async function RiskFlagsPage() {
 
   const { data: profile } = await db.from('profiles').select('field').eq('id', userId).maybeSingle()
   const showCheckInPath = profile ? isManualCheckinField(profile.field) : true
+  const isEngineering = profile?.field === 'engineering'
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Risk Flags</h1>
         <p className="mt-1 text-neutral-500 dark:text-neutral-400">
-          {showCheckInPath
-            ? 'Staffing and coverage signals from your most recent schedule upload, plus concerns flagged from your check-ins.'
-            : 'Signals from your most recent financial snapshot that crossed a risk threshold.'}
+          {isEngineering
+            ? 'Delivery and stability signals from your connected GitHub repository, plus concerns flagged from your check-ins.'
+            : showCheckInPath
+              ? 'Staffing and coverage signals from your most recent schedule upload, plus concerns flagged from your check-ins.'
+              : 'Signals from your most recent financial snapshot that crossed a risk threshold.'}
         </p>
       </div>
 
-      {showCheckInPath ? (
+      {isEngineering ? (
+        <div className="space-y-8">
+          <section>
+            <h2 className="text-lg font-medium tracking-tight">GitHub</h2>
+            <EngineeringRiskFlags userId={userId} db={db} />
+          </section>
+          <section>
+            <h2 className="text-lg font-medium tracking-tight">Check-ins</h2>
+            <CheckInRiskFlags userId={userId} db={db} />
+          </section>
+        </div>
+      ) : showCheckInPath ? (
         <div className="space-y-8">
           <section>
             <h2 className="text-lg font-medium tracking-tight">Schedule</h2>
