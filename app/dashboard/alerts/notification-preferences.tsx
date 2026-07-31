@@ -31,7 +31,7 @@ function PreferenceRow({ preference }: { preference: NotificationPreference }) {
           aria-label={`${preference.email_enabled ? 'Disable' : 'Enable'} email for ${SIGNAL_TYPE_LABELS[preference.signal_type]}`}
           className={
             preference.email_enabled
-              ? 'relative h-6 w-11 shrink-0 rounded-full bg-neutral-900 transition-colors disabled:opacity-60 dark:bg-white'
+              ? 'relative h-6 w-11 shrink-0 rounded-full bg-field-1 transition-colors disabled:opacity-60'
               : 'relative h-6 w-11 shrink-0 rounded-full bg-neutral-200 transition-colors disabled:opacity-60 dark:bg-neutral-700'
           }
         >

@@ -16,7 +16,7 @@ export function DisconnectButton() {
         onClick={() => setConfirming(true)}
         className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
       >
-        Disconnect QuickBooks
+        Disconnect financial data
       </button>
     )
   }
@@ -24,7 +24,7 @@ export function DisconnectButton() {
   return (
     <div className="space-y-2 text-right">
       <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        Disconnect QuickBooks? Beacon will stop syncing your financials.
+        Disconnect your financial data? Beacon will stop syncing your financials.
       </p>
       <div className="flex justify-end gap-2">
         <button

@@ -60,12 +60,12 @@ export default async function SettingsPage() {
           {profile.wants_data_integration
             ? isManualCheckinField(profile.field)
               ? 'Connect a staffing schedule, or keep using manual check-ins.'
-              : 'Connect QuickBooks so Beacon can monitor your financials for risk.'
+              : 'Connect your financial data so Beacon can monitor your financials for risk.'
             : "You chose manual check-ins during setup. You can connect a data source any time."}
         </p>
         <Link
           href="/dashboard/settings/integrations"
-          className="mt-3 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          className="mt-3 inline-block rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
         >
           Manage data connection →
         </Link>

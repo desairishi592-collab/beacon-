@@ -64,7 +64,7 @@ export function DashboardNav({
           aria-current={pathname === link.href ? 'page' : undefined}
           className={
             pathname === link.href
-              ? 'flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900'
+              ? 'flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md bg-field-1 px-3 py-2 text-sm font-medium text-field-1-fg'
               : 'flex shrink-0 items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
           }
         >

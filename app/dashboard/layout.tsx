@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
 import { getCurrentSession } from '@/lib/current-user'
 import { getUnreadAlertCount } from '@/lib/alerts/unread-count'
+import { getFieldThemeClass } from '@/lib/theme/field-theme'
 import { DashboardNav } from './nav'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const unreadAlertCount = profile?.field === 'finance' ? await getUnreadAlertCount(session) : 0
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+    <div className={`min-h-screen bg-neutral-50 dark:bg-neutral-950 ${getFieldThemeClass(profile?.field)}`}>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white dark:focus:bg-white dark:focus:text-neutral-900"

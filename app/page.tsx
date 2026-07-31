@@ -6,7 +6,7 @@ const FEATURES = [
   {
     title: 'Automated risk flags',
     description:
-      'Connect QuickBooks and Beacon watches your synced financials for cash, burn, coverage, and expense risk — flagging anything that crosses a threshold, by severity.',
+      'Connect your financial data and Beacon watches your synced financials for cash, burn, coverage, and expense risk — flagging anything that crosses a threshold, by severity.',
   },
   {
     title: 'Check-ins for every field',

@@ -9,11 +9,25 @@
   --chart-revenue: #171717;
   --chart-expenses: #dc2626;
   --chart-operating-income: #a3a3a3;
+
+  /* Field accent tokens — the base palette (backgrounds, text, borders,
+     structure) stays black/gray/white everywhere; only accent elements
+     (buttons, active states, badges, links) read from these. Default here
+     is the pre-field state (no field selected yet, or field === 'other'):
+     black + gray, no color. Overridden per field by the .theme-* classes
+     below, applied at the dashboard layout level once profile.field is
+     known — see lib/theme/field-theme.ts. */
+  --field-1: #171717;
+  --field-1-fg: #ffffff;
+  --field-2: #737373;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-field-1: var(--field-1);
+  --color-field-1-fg: var(--field-1-fg);
+  --color-field-2: var(--field-2);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -25,6 +39,48 @@
     --chart-revenue: #ededed;
     --chart-expenses: #f87171;
     --chart-operating-income: #737373;
+    --field-1: #ededed;
+    --field-1-fg: #171717;
+    --field-2: #a3a3a3;
+  }
+}
+
+/* Finance: red + green */
+.theme-finance {
+  --field-1: #dc2626;
+  --field-1-fg: #ffffff;
+  --field-2: #16a34a;
+}
+
+/* Engineering: yellow + gray */
+.theme-engineering {
+  --field-1: #ca8a04;
+  --field-1-fg: #171717;
+  --field-2: #737373;
+}
+
+/* Medicine: blue + purple */
+.theme-medicine {
+  --field-1: #2563eb;
+  --field-1-fg: #ffffff;
+  --field-2: #9333ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  .theme-finance {
+    --field-1: #f87171;
+    --field-1-fg: #171717;
+    --field-2: #4ade80;
+  }
+  .theme-engineering {
+    --field-1: #facc15;
+    --field-1-fg: #171717;
+    --field-2: #a3a3a3;
+  }
+  .theme-medicine {
+    --field-1: #60a5fa;
+    --field-1-fg: #171717;
+    --field-2: #c084fc;
   }
 }
 

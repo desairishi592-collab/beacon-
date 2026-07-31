@@ -178,7 +178,7 @@ export function OnboardingWizard({ inviteId }: { inviteId?: string }) {
             </label>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
               If yes, we&apos;ll take you straight into connecting a data source (like a staffing
-              schedule or QuickBooks) after this. If no, you can do quick manual check-ins instead
+              schedule or your financial data) after this. If no, you can do quick manual check-ins instead
               — and connect a data source later from Settings any time.
             </p>
             <div className="grid grid-cols-2 gap-3 pt-1">

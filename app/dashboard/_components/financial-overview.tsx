@@ -21,7 +21,7 @@ function EmptyStateCard({
       {linkHref && linkLabel && (
         <Link
           href={linkHref}
-          className="mt-4 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          className="mt-4 inline-block rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90"
         >
           {linkLabel}
         </Link>
@@ -34,7 +34,7 @@ function NoIntegrationsCard() {
   return (
     <EmptyStateCard
       title="No integrations connected yet."
-      description="Connect QuickBooks to start monitoring risk flags."
+      description="Connect your financial data to start monitoring risk flags."
       linkHref="/dashboard/settings/integrations"
       linkLabel="Go to integrations"
     />
@@ -44,7 +44,7 @@ function NoIntegrationsCard() {
 function NotSyncedYetCard() {
   return (
     <EmptyStateCard
-      title="QuickBooks is connected, but hasn't synced yet."
+      title="Your financial data is connected, but hasn't synced yet."
       description="Once the first sync finishes, your financial trends will show up here."
       linkHref="/dashboard/settings/integrations"
       linkLabel="View sync status"

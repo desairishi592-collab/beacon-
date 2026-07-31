@@ -81,8 +81,8 @@ export default async function TeamPage() {
 
                 {!isManualCheckinField(member.field) ? (
                   <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-600">
-                    Finance check-ins run through QuickBooks and risk flags, which aren&apos;t shared
-                    in team view.
+                    Finance check-ins run through connected financial data and risk flags, which
+                    aren&apos;t shared in team view.
                   </p>
                 ) : checkins.length === 0 ? (
                   <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-600">

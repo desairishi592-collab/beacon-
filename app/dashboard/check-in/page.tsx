@@ -84,7 +84,7 @@ export default async function CheckInPage() {
         <Link href="/dashboard/settings/integrations" className="underline">
           Integrations
         </Link>{' '}
-        — QuickBooks is supported today, with more integrations planned by field.
+        — a financial data connection is supported today, with more integrations planned by field.
       </p>
     </div>
   )

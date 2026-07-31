@@ -78,7 +78,7 @@ export function SettingsForm({
           name="weekly_digest_enabled"
           type="checkbox"
           defaultChecked={weeklyDigestEnabled}
-          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-neutral-900 dark:border-neutral-700 dark:accent-neutral-100"
+          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-field-1 dark:border-neutral-700"
         />
         <label htmlFor="weekly_digest_enabled" className="text-sm">
           <span className="font-medium">Weekly email digest</span>
@@ -100,7 +100,7 @@ export function SettingsForm({
           name="check_in_reminder_enabled"
           type="checkbox"
           defaultChecked={checkInReminderEnabled}
-          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-neutral-900 dark:border-neutral-700 dark:accent-neutral-100"
+          className="mt-0.5 h-4 w-4 rounded border-neutral-300 accent-field-1 dark:border-neutral-700"
         />
         <label htmlFor="check_in_reminder_enabled" className="text-sm">
           <span className="font-medium">Check-in reminder emails</span>
@@ -121,7 +121,7 @@ export function SettingsForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          className="rounded-md bg-field-1 px-4 py-2 text-sm font-medium text-field-1-fg hover:opacity-90 disabled:opacity-60"
         >
           {pending ? 'Saving…' : 'Save changes'}
         </button>
