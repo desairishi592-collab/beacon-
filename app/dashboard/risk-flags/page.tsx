@@ -18,6 +18,8 @@ import {
   EmptyState as EngineeringEmptyState,
   RiskFlagsSection as EngineeringRiskFlagsSection,
 } from './engineering-risk-flags-list'
+import { EngineeringTrends } from '../_components/engineering-trends'
+import type { EngineeringRiskFlag } from '@/lib/supabase/types'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -138,17 +140,17 @@ async function EngineeringRiskFlags({ userId, db }: { userId: string; db: Supaba
     )
   }
 
-  const { data: snapshot } = await db
+  // Last 30 syncs (oldest first) so the trend view below has history to
+  // chart, not just the latest point.
+  const { data: snapshots } = await db
     .from('engineering_snapshots')
     .select('*')
     .eq('profile_id', userId)
     .order('synced_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(30)
 
-  const { data: flags } = snapshot
-    ? await db.from('engineering_risk_flags').select('*').eq('snapshot_id', snapshot.id)
-    : { data: null }
+  const snapshotsOldestFirst = snapshots ? [...snapshots].reverse() : []
+  const snapshot = snapshotsOldestFirst[snapshotsOldestFirst.length - 1]
 
   if (!snapshot) {
     return (
@@ -167,6 +169,22 @@ async function EngineeringRiskFlags({ userId, db }: { userId: string; db: Supaba
     )
   }
 
+  const { data: allFlags } = await db
+    .from('engineering_risk_flags')
+    .select('*')
+    .in(
+      'snapshot_id',
+      snapshotsOldestFirst.map((s) => s.id),
+    )
+
+  const flagsBySnapshot = new Map<string, EngineeringRiskFlag[]>()
+  for (const flag of allFlags ?? []) {
+    const existing = flagsBySnapshot.get(flag.snapshot_id)
+    if (existing) existing.push(flag)
+    else flagsBySnapshot.set(flag.snapshot_id, [flag])
+  }
+  const latestFlags = flagsBySnapshot.get(snapshot.id) ?? []
+
   return (
     <>
       <div>
@@ -181,7 +199,15 @@ async function EngineeringRiskFlags({ userId, db }: { userId: string; db: Supaba
         </div>
       </div>
 
-      <EngineeringRiskFlagsSection flags={flags ?? []} />
+      {snapshotsOldestFirst.length >= 2 ? (
+        <EngineeringTrends snapshots={snapshotsOldestFirst} flagsBySnapshot={flagsBySnapshot} />
+      ) : (
+        <p className="mt-6 text-sm text-neutral-400 dark:text-neutral-600">
+          Trends will show up here once a second sync comes in.
+        </p>
+      )}
+
+      <EngineeringRiskFlagsSection flags={latestFlags} />
     </>
   )
 }
